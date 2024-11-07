@@ -16,8 +16,7 @@
 ---
 ### Доменная модель
 
-![matcher_service_domain_sql_prototype_psql--3](https://github.com/user-attachments/assets/a8e5f7c9-0ef5-4a41-b967-c1efa8885ab1)
-
+![Domain model](./doc/img/matcher_service_domain_sql_prototype_psql-.png)
 
 ---
 ### Алгоритм подбора
