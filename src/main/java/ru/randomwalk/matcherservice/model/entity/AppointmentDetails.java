@@ -37,6 +37,9 @@ public class AppointmentDetails {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @Column(name = "ENDED_AT")
+    private LocalDateTime endedAt;
+
     @Column(name = "STARTS_AT")
     private LocalDateTime startsAt;
 

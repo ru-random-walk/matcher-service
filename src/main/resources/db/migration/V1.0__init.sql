@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS APPOINTMENT_DETAILS(
     CREATED_AT timestamp,
     STARTS_AT timestamp,
     UPDATED_AT timestamp,
+    ENDED_AT timestamp,
     STATUS matcher.APPOINTMENT_STATUS
 );
 
