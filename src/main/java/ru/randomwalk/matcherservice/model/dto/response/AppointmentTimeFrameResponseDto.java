@@ -5,6 +5,7 @@ import lombok.Builder;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 
 import java.time.LocalTime;
+import java.time.OffsetTime;
 import java.util.UUID;
 
 @Builder
@@ -13,8 +14,8 @@ public record AppointmentTimeFrameResponseDto(
         UUID partnerId,
         @Nullable
         UUID appointmentId,
-        LocalTime timeFrom,
-        LocalTime timeUntil,
+        OffsetTime timeFrom,
+        OffsetTime timeUntil,
         AppointmentStatus status
 ) {
 }

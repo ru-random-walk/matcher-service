@@ -5,15 +5,13 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.OffsetTime;
 import java.util.List;
 
 @Builder
 public record AvailableTimeRequestDto(
         @NotNull
         LocalDate date,
-        @NotNull
-        Integer timezone,
         Integer walkCount,
         @NotEmpty
         List<TimeFrame> timeFrames
@@ -21,8 +19,8 @@ public record AvailableTimeRequestDto(
     @Builder
     public record TimeFrame(
             @NotNull
-            LocalTime timeFrom,
+            OffsetTime timeFrom,
             @NotNull
-            LocalTime timeUntil
+            OffsetTime timeUntil
     ){}
 }

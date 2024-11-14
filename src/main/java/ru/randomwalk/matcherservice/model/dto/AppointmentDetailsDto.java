@@ -4,6 +4,7 @@ import lombok.Builder;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,8 +12,8 @@ import java.util.UUID;
 public record AppointmentDetailsDto(
         UUID id,
         List<UUID> participants,
-        LocalDateTime startsAt,
-        LocalDateTime endedAt,
+        OffsetDateTime startsAt,
+        OffsetDateTime endedAt,
         AppointmentStatus status
 ) {
 }

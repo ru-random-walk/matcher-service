@@ -16,6 +16,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Getter
@@ -31,17 +32,17 @@ public class AppointmentDetails {
 
     @Column(name = "CREATED_AT")
     @CreationTimestamp
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     @Column(name = "UPDATED_AT")
     @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    private OffsetDateTime updatedAt;
 
     @Column(name = "ENDED_AT")
-    private LocalDateTime endedAt;
+    private OffsetDateTime endedAt;
 
     @Column(name = "STARTS_AT")
-    private LocalDateTime startsAt;
+    private OffsetDateTime startsAt;
 
     @Column(name = "STATUS")
     @Enumerated(EnumType.STRING)
