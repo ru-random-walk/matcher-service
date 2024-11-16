@@ -56,7 +56,8 @@ public class Person {
     @JoinColumn(name = "PERSON_ID")
     private List<Club> clubs = new ArrayList<>();
 
-    @OneToMany(mappedBy = "person", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "PERSON_ID")
     private List<AvailableTime> availableTimes = new ArrayList<>();
 
     @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)

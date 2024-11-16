@@ -13,10 +13,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.TimeZoneColumn;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.OffsetTime;
 import java.util.UUID;
 
 @Getter
@@ -35,13 +39,17 @@ public class AvailableTime {
     private UUID personId;
 
     @Column(name = "TIME_FROM", nullable = false)
-    private Time timeFrom;
+    @TimeZoneStorage(TimeZoneStorageType.COLUMN)
+    @TimeZoneColumn(name = "TIMEZONE", updatable = false, insertable = false)
+    private OffsetTime timeFrom;
 
     @Column(name = "TIME_UNTIL", nullable = false)
-    private Time timeUntil;
+    @TimeZoneStorage(TimeZoneStorageType.COLUMN)
+    @TimeZoneColumn(name = "TIMEZONE", updatable = false, insertable = false)
+    private OffsetTime timeUntil;
 
-    @Column(name = "TIMEZONE", nullable = false)
-    private Integer timezone;
+    @Column(name = "TIMEZONE")
+    private String timezone;
 
     @Column(name = "DATE", nullable = false)
     private LocalDate date;

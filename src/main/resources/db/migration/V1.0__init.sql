@@ -92,9 +92,10 @@ CREATE TABLE IF NOT EXISTS DAY_LIMIT(
 
 CREATE TABLE IF NOT EXISTS APPOINTMENT_DETAILS(
     ID uuid PRIMARY KEY,
-    CREATED_AT timestamp,
-    STARTS_AT timestamp,
-    UPDATED_AT timestamp,
+    CREATED_AT timestamptz,
+    STARTS_AT timestamptz,
+    UPDATED_AT timestamptz,
+    ENDED_AT timestamptz,
     STATUS matcher.APPOINTMENT_STATUS
 );
 
@@ -107,9 +108,9 @@ CREATE TABLE IF NOT EXISTS APPOINTMENT(
 CREATE TABLE IF NOT EXISTS AVAILABLE_TIME(
     ID uuid PRIMARY KEY,
     PERSON_ID uuid references PERSON,
-    TIME_FROM time not null,
-    TIME_UNTIL time not null,
-    TIMEZONE int not null,
+    TIME_FROM timetz not null,
+    TIME_UNTIL timetz not null,
+    TIMEZONE varchar not null,
     DATE date not null ,
     FOREIGN KEY (PERSON_ID, DATE) references DAY_LIMIT(PERSON_ID, DATE)
 );
