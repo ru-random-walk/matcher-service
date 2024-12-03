@@ -12,6 +12,7 @@ import java.util.List;
 public record AvailableTimeRequestDto(
         @NotNull
         LocalDate date,
+        String timezone,
         Integer walkCount,
         @NotEmpty
         List<TimeFrame> timeFrames

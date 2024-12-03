@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.randomwalk.matcherservice.model.dto.AppointmentDetailsDto;
 import ru.randomwalk.matcherservice.model.dto.request.AppointmentRequestDto;
 import ru.randomwalk.matcherservice.model.dto.response.AvailableTimeResponseDto;
+import ru.randomwalk.matcherservice.service.facade.AppointmentFacade;
 
 import java.security.Principal;
 import java.util.Collections;
@@ -28,14 +29,16 @@ import java.util.UUID;
 @RequestMapping("/appointment")
 public class AppointmentController {
 
+    private final AppointmentFacade appointmentFacade;
+
     @PostMapping("/add")
     @Operation(summary = "Add available time to schedule and search for appointment")
-    public List<AvailableTimeResponseDto> createAppointment(
+    public void createAppointment(
             @Validated @RequestBody AppointmentRequestDto request,
             Principal principal
     ) {
         log.info("POST /appointment/create request from {} with body: {}", principal.getName(), request);
-        return Collections.emptyList();
+        appointmentFacade.createAppointment(request, principal);
     }
 
     @DeleteMapping("/{appointmentId}/cancel")

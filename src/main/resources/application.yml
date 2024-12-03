@@ -1,3 +1,7 @@
 spring:
   application:
     name: matcher-service
+
+matcher:
+  min-walk-time-in-seconds: 3600
+  offset-between-walks-in-seconds: 900

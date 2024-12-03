@@ -1,0 +1,1 @@
+ALTER TABLE if exists PERSON ADD COLUMN IF NOT EXISTS in_search bool default false;

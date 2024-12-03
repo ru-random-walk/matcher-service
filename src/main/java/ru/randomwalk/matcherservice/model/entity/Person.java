@@ -52,6 +52,9 @@ public class Person {
     @Enumerated(EnumType.STRING)
     private FilterType groupFilterType;
 
+    @Column(name = "IN_SEARCH")
+    private boolean inSearch;
+
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinColumn(name = "PERSON_ID")
     private List<Club> clubs = new ArrayList<>();
