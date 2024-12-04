@@ -20,6 +20,7 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.Optional;
 import java.util.TimeZone;
 
 import static ru.randomwalk.matcherservice.service.util.TimeUtil.isAfterOrEqual;
@@ -36,21 +37,21 @@ public class AppointmentSchedulingServiceImpl implements AppointmentSchedulingSe
 
     @Override
     @Transactional
-    public void scheduleAppointmentWithOverlap(
+    public Optional<AppointmentDetails> scheduleAppointmentWithOverlap(
             Person person,
             Person partner,
             AvailableTimeOverlapModel overlapModel
     ) {
         log.info("Scheduling appointment for person {} with partner {}", person.getId(), partner.getId());
-        AvailableTime initialPersonAvailableTime = getPersonAvailableTimeByOverlapInterval(person, overlapModel);
-        AvailableTime partnerAvailableTime = getPersonAvailableTimeByOverlapInterval(partner, overlapModel);
+        AvailableTime initialPersonAvailableTime = overlapModel.initialPersonOverlapAvailableTime();
+        AvailableTime partnerAvailableTime = overlapModel.selectedCandidateAvailableTime();
 
         if (initialPersonAvailableTime == null || partnerAvailableTime == null) {
             log.warn(
                     "There is no available time for initial person {} and partner {} to schedule appointment with overlapModel = {}",
                     person.getId(), partner.getId(), overlapModel
             );
-            return;
+            return Optional.empty();
         }
 
         OffsetTime walkBeginTime = overlapModel.timeFrom();
@@ -63,7 +64,7 @@ public class AppointmentSchedulingServiceImpl implements AppointmentSchedulingSe
         reserveAvailableTimeForWalk(partner, partnerAvailableTime, walkBeginTime, walkEndTime);
 
         OffsetDateTime startDateTime = getAppointmentStartDate(initialPersonAvailableTime, walkBeginTime);
-        appointmentDetailsService.createAppointment(person, partner, startDateTime);
+        return Optional.of(appointmentDetailsService.createAppointment(person, partner, startDateTime));
     }
 
     private void reserveAvailableTimeForWalk(Person person, AvailableTime availableTime, OffsetTime walkBeginTime, OffsetTime walkEndTime) {
@@ -84,19 +85,5 @@ public class AppointmentSchedulingServiceImpl implements AppointmentSchedulingSe
         LocalTime localTime = startTime.toLocalTime();
 
         return OffsetDateTime.of(date, localTime, zoneOffset);
-    }
-
-    private AvailableTime getPersonAvailableTimeByOverlapInterval(Person person, AvailableTimeOverlapModel overlapModel) {
-        return person.getAvailableTimes()
-                .stream()
-                .filter(availableTime -> availableTimeContainsOverlap(availableTime, overlapModel))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private boolean availableTimeContainsOverlap(AvailableTime availableTime, AvailableTimeOverlapModel overlapModel) {
-        return availableTime.getDate().equals(overlapModel.date())
-                && isBeforeOrEqual(availableTime.getTimeFrom(), overlapModel.timeFrom())
-                && isAfterOrEqual(availableTime.getTimeUntil(), overlapModel.timeUntil());
     }
 }

@@ -15,9 +15,9 @@ public record AvailableTimeOverlapModel (
         OffsetTime timeFrom,
         OffsetTime timeUntil,
         @ToString.Exclude
-        UUID initialPersonOverlapAvailableTime,
+        AvailableTime initialPersonOverlapAvailableTime,
         @ToString.Exclude
-        UUID selectedCandidateId
+        AvailableTime selectedCandidateAvailableTime
 ) implements Comparable<AvailableTimeOverlapModel> {
 
     @Override

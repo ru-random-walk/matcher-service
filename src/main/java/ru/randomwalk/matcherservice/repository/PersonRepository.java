@@ -54,6 +54,7 @@ public interface PersonRepository extends JpaRepository<Person, UUID> {
         AND pc.club_id IN :groupIdsInFilter
         GROUP BY p.id
         HAVING COUNT(DISTINCT pc.club_id) = :filterGroupCount
+        ORDER BY p.in_search_from
     """, nativeQuery = true
     )
     @QueryHints(

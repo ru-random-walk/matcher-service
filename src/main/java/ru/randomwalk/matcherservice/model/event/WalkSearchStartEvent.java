@@ -13,5 +13,5 @@ import java.util.UUID;
  */
 @Builder
 public record WalkSearchStartEvent(
-    UUID personId
+        UUID personId
 ) { }
