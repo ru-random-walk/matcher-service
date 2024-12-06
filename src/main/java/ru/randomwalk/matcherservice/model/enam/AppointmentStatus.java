@@ -1,8 +1,7 @@
 package ru.randomwalk.matcherservice.model.enam;
 
 public enum AppointmentStatus {
-    NEW,
-    IN_SEARCH,
+    REQUESTED,
     APPOINTED,
     DONE,
     CANCELED
