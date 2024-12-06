@@ -13,10 +13,14 @@ import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 import ru.randomwalk.matcherservice.model.entity.Person;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 public interface PersonRepository extends JpaRepository<Person, UUID> {
+
+    @Query("select p from Person as p join fetch p.availableTimes where p.id = :id")
+    Optional<Person> findByIdWithFetchedAvailableTime(@Param("id") UUID id);
 
     @EntityGraph(type = EntityGraph.EntityGraphType.LOAD, attributePaths = {"availableTimes", "dayLimit"})
     @Query("""

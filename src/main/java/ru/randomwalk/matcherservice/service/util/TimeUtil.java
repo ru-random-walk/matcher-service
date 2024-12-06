@@ -1,6 +1,7 @@
 package ru.randomwalk.matcherservice.service.util;
 
 import com.nimbusds.jose.util.Pair;
+import jakarta.annotation.Nullable;
 import lombok.experimental.UtilityClass;
 
 import java.time.OffsetTime;
@@ -10,6 +11,7 @@ import java.time.temporal.ChronoUnit;
 public class TimeUtil {
 
 
+    @Nullable
     public Pair<OffsetTime, OffsetTime> getOverlappingInterval(
             Pair<OffsetTime, OffsetTime> firstInterval,
             Pair<OffsetTime, OffsetTime> secondInterval

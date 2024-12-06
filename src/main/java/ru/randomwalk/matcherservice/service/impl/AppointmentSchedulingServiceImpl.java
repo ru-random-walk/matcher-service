@@ -3,28 +3,23 @@ package ru.randomwalk.matcherservice.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
-import ru.randomwalk.matcherservice.model.entity.DayLimit;
 import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.model.model.AvailableTimeOverlapModel;
-import ru.randomwalk.matcherservice.service.AppointmentSchedulingService;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
+import ru.randomwalk.matcherservice.service.AppointmentSchedulingService;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Optional;
-import java.util.TimeZone;
-
-import static ru.randomwalk.matcherservice.service.util.TimeUtil.isAfterOrEqual;
-import static ru.randomwalk.matcherservice.service.util.TimeUtil.isBeforeOrEqual;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -36,15 +31,15 @@ public class AppointmentSchedulingServiceImpl implements AppointmentSchedulingSe
     private final MatcherProperties matcherProperties;
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.NESTED)
     public Optional<AppointmentDetails> scheduleAppointmentWithOverlap(
             Person person,
             Person partner,
             AvailableTimeOverlapModel overlapModel
     ) {
         log.info("Scheduling appointment for person {} with partner {}", person.getId(), partner.getId());
-        AvailableTime initialPersonAvailableTime = overlapModel.initialPersonOverlapAvailableTime();
-        AvailableTime partnerAvailableTime = overlapModel.selectedCandidateAvailableTime();
+        AvailableTime initialPersonAvailableTime = overlapModel.firstOverlappingAvailableTime();
+        AvailableTime partnerAvailableTime = overlapModel.secondOverlappingAvailableTime();
 
         if (initialPersonAvailableTime == null || partnerAvailableTime == null) {
             log.warn(

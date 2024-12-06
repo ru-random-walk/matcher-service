@@ -11,7 +11,7 @@ import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.DayLimit;
 import ru.randomwalk.matcherservice.model.entity.Person;
-import ru.randomwalk.matcherservice.model.event.WalkSearchStartEvent;
+import ru.randomwalk.matcherservice.model.event.WalkOrganizerStartEvent;
 import ru.randomwalk.matcherservice.model.model.AvailableTimeOverlapModel;
 import ru.randomwalk.matcherservice.repository.AvailableTimeRepository;
 import ru.randomwalk.matcherservice.repository.DayLimitRepository;
@@ -43,8 +43,8 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
 
     @Override
     public void addAvailableTime(List<AvailableTime> newAvailableTimes, UUID personId) {
-        availableTimeRepository.saveAll(newAvailableTimes);
-        eventPublisher.publishEvent(new WalkSearchStartEvent(personId));
+        availableTimeRepository.saveAllAndFlush(newAvailableTimes);
+        eventPublisher.publishEvent(new WalkOrganizerStartEvent(personId));
     }
 
     @Override
@@ -77,7 +77,7 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
             splitResult.add(beforeAvailableTime);
         }
 
-        if (!availableTime.getTimeUntil().isEqual(splitUntil)) {
+        if (!availableTime.getTimeUntil().isEqual(splitUntil) && availableTime.getTimeFrom().isBefore(splitUntil)) {
             AvailableTime afterAvailableTime = availableTimeMapper.clone(availableTime);
             afterAvailableTime.setTimeFrom(splitUntil);
             splitResult.add(afterAvailableTime);
@@ -139,8 +139,8 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
                 firstAvailableTime.getDate(),
                 overlap.getLeft(),
                 overlap.getRight(),
-                firstAvailableTime.getPersonId(),
-                secondAvailableTime.getPersonId()
+                firstAvailableTime,
+                secondAvailableTime
         );
     }
 

@@ -4,7 +4,7 @@ import ru.randomwalk.matcherservice.model.dto.request.AppointmentRequestDto;
 
 import java.security.Principal;
 
-public interface AppointmentFacade {
+public interface AvailableTimeFacade {
 
-    void createAppointment(AppointmentRequestDto dto, Principal principal);
+    void addAvailableTime(AppointmentRequestDto dto, Principal principal);
 }

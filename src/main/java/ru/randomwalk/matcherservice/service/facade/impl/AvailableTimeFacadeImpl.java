@@ -4,10 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.randomwalk.matcherservice.model.dto.request.AppointmentRequestDto;
-import ru.randomwalk.matcherservice.model.dto.response.AvailableTimeResponseDto;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
+import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
-import ru.randomwalk.matcherservice.service.facade.AppointmentFacade;
+import ru.randomwalk.matcherservice.service.PersonService;
+import ru.randomwalk.matcherservice.service.facade.AvailableTimeFacade;
 import ru.randomwalk.matcherservice.service.mapper.AvailableTimeMapper;
 import ru.randomwalk.matcherservice.service.validation.AppointmentValidator;
 
@@ -18,17 +19,19 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class AppointmentFacadeImpl implements AppointmentFacade {
+public class AvailableTimeFacadeImpl implements AvailableTimeFacade {
 
     private final AppointmentValidator appointmentValidator;
     private final AvailableTimeMapper availableTimeMapper;
     private final AvailableTimeService availableTimeService;
+    private final PersonService personService;
 
     @Override
-    public void createAppointment(AppointmentRequestDto dto, Principal principal) {
+    public void addAvailableTime(AppointmentRequestDto dto, Principal principal) {
         UUID personId = UUID.fromString(principal.getName());
-        appointmentValidator.validate(dto);
+        Person person = personService.findByIdWithFetchedAvailableTime(personId);
         List<AvailableTime> availableTimes = availableTimeMapper.fromRequests(dto.availableTime(), personId);
+        appointmentValidator.validateCreateRequest(dto, person);
 
         availableTimeService.addAvailableTime(availableTimes, personId);
     }
