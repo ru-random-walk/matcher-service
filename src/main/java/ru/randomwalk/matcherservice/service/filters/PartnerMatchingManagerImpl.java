@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class AllGroupsInFilterPartnerMatchingManager implements PartnerMatchingManager {
+public class PartnerMatchingManagerImpl implements PartnerMatchingManager {
 
     private final PersonService personService;
     private final AvailableTimeService availableTimeService;
