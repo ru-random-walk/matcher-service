@@ -18,15 +18,20 @@ import java.util.stream.Stream;
 
 public interface PersonRepository extends JpaRepository<Person, UUID> {
 
-    @Query("select p from Person as p join fetch p.availableTimes where p.id = :id")
+    @Query("""
+            select p from Person as p
+            left join fetch p.availableTimes as a
+            left join fetch a.dayLimit as dl
+            where p.id = :id
+    """)
     Optional<Person> findByIdWithFetchedAvailableTime(@Param("id") UUID id);
 
-    @EntityGraph(type = EntityGraph.EntityGraphType.LOAD, attributePaths = {"availableTimes", "dayLimit"})
+    @EntityGraph(type = EntityGraph.EntityGraphType.LOAD, attributePaths = {"availableTimes", "availableTimes.dayLimit"})
     @Query("""
         select p from Person as p
-        inner join p.location as l
-        join fetch p.clubs as cl
-        where within(l.position, :point, :distanceInMeters) = true
+        left join p.location as l
+        left join p.clubs as cl
+        where distance(l.position, :point) <= :distanceInMeters
         and p.inSearch = true
         and p.id != :excludePersonId
         and (
@@ -48,15 +53,14 @@ public interface PersonRepository extends JpaRepository<Person, UUID> {
             @Param("isAnyMatchSearch") boolean isAnyMatchSearch
     );
 
-    @EntityGraph(type = EntityGraph.EntityGraphType.LOAD, attributePaths = {"availableTimes", "dayLimit"})
     @Query(value = """
         SELECT p.* FROM PERSON p
-            JOIN person_club pc ON p.id = pc.person_id
-            JOIN location l ON p.location_id = l.id
+            LEFT JOIN person_club pc ON p.id = pc.person_id
+            LEFT JOIN location l ON p.location_id = l.id
         WHERE p.id != :excludePersonId
-            AND p.in_search = true
-            AND pc.in_filter = true
             AND ST_DWithin(l.position, :point, :distanceInMeters) = true
+            AND p.in_search = true
+            AND (p.group_filter_type = 'NO_FILTER' OR pc.in_filter = true)
             AND pc.club_id IN :groupIdsInFilter
         GROUP BY p.id
         HAVING COUNT(DISTINCT pc.club_id) = :filterGroupCount

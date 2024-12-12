@@ -1,6 +1,5 @@
 package ru.randomwalk.matcherservice.service.mapper;
 
-import com.nimbusds.jose.util.Pair;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.control.DeepClone;
@@ -10,6 +9,7 @@ import ru.randomwalk.matcherservice.model.entity.DayLimit;
 
 import java.time.LocalDate;
 import java.time.OffsetTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -30,7 +30,7 @@ public interface AvailableTimeMapper {
     default List<AvailableTime> getEntitiesFromRequest(AvailableTimeRequestDto dto, UUID personId) {
         return dto.timeFrames().stream()
                 .map(timeFrame -> AvailableTime.builder()
-                        .timezone(dto.timezone())
+                        .timezone(timeFrame.timeFrom().getOffset().getId())
                         .personId(personId)
                         .date(dto.date())
                         .timeFrom(timeFrame.timeFrom())
@@ -39,6 +39,7 @@ public interface AvailableTimeMapper {
                         .build()
                 ).collect(Collectors.toList());
     }
+
 
     default DayLimit buildDayLimit(UUID personId, LocalDate date, Integer walkCount) {
         return DayLimit.builder()

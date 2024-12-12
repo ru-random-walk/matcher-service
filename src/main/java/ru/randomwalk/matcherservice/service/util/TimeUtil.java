@@ -1,18 +1,17 @@
 package ru.randomwalk.matcherservice.service.util;
 
-import com.nimbusds.jose.util.Pair;
 import jakarta.annotation.Nullable;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.OffsetTime;
 import java.time.temporal.ChronoUnit;
 
-@UtilityClass
 public class TimeUtil {
 
 
     @Nullable
-    public Pair<OffsetTime, OffsetTime> getOverlappingInterval(
+    public static Pair<OffsetTime, OffsetTime> getOverlappingInterval(
             Pair<OffsetTime, OffsetTime> firstInterval,
             Pair<OffsetTime, OffsetTime> secondInterval
     ) {
@@ -31,15 +30,15 @@ public class TimeUtil {
         return Pair.of(maxStart, minEnd);
     }
 
-    public boolean isAfterOrEqual(OffsetTime first, OffsetTime second) {
+    public static boolean isAfterOrEqual(OffsetTime first, OffsetTime second) {
         return first.isAfter(second) || first.equals(second);
     }
 
-    public boolean isBeforeOrEqual(OffsetTime first, OffsetTime second) {
-        return first.isAfter(second) || first.equals(second);
+    public static boolean isBeforeOrEqual(OffsetTime first, OffsetTime second) {
+        return first.isBefore(second) || first.equals(second);
     }
 
-    public boolean isDifferenceWithinIntervalExist(Pair<OffsetTime, OffsetTime> interval, int differenceInSeconds) {
+    public static boolean isDifferenceWithinIntervalExist(Pair<OffsetTime, OffsetTime> interval, int differenceInSeconds) {
         return ChronoUnit.SECONDS.between(interval.getLeft(), interval.getRight()) >= differenceInSeconds;
     }
 }

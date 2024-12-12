@@ -31,7 +31,7 @@ public class AppointmentSchedulingServiceImpl implements AppointmentSchedulingSe
     private final MatcherProperties matcherProperties;
 
     @Override
-    @Transactional(propagation = Propagation.NESTED)
+    @Transactional
     public Optional<AppointmentDetails> scheduleAppointmentWithOverlap(
             Person person,
             Person partner,

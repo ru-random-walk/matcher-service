@@ -30,7 +30,7 @@ public class PersonServiceImpl implements PersonService {
     @Override
     public Person findByIdWithFetchedAvailableTime(UUID personId) {
         return personRepository.findByIdWithFetchedAvailableTime(personId)
-                .orElseThrow(() -> new MatcherNotFoundException("Person with id %d does not exist", personId));
+                .orElseThrow(() -> new MatcherNotFoundException("Person with id %s does not exist", personId));
     }
 
     @Override
@@ -74,18 +74,15 @@ public class PersonServiceImpl implements PersonService {
     }
 
     private Stream<Person> getWithoutFilterPersonStreamForPerson(Person person) {
-        List<UUID> clubsInFilterId = getClubsInFilterIds(person);
-        Set<UUID> clubsIdsSet = new HashSet<>(clubsInFilterId);
-
         log.info("Searching for partners for person {} with no filter", person.getId());
 
         return personRepository.findByDistanceAndGroupIdsInFilterByFilterType(
                 person.getId(),
                 person.getLocation().getPosition(),
                 Double.valueOf(person.getSearchAreaInMeters()),
-                clubsInFilterId,
+                List.of(),
                 false
-        ).filter(candidate -> filterAllGroupsMatchIfNeeded(candidate, clubsIdsSet));
+        );
     }
 
     private boolean filterAllGroupsMatchIfNeeded(Person candidate, Set<UUID> clubsInFilterId) {

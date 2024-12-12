@@ -1,5 +1,6 @@
 package ru.randomwalk.matcherservice.model.dto.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
@@ -12,8 +13,8 @@ import java.util.List;
 public record AvailableTimeRequestDto(
         @NotNull
         LocalDate date,
-        String timezone,
         Integer walkCount,
+        @Valid
         @NotEmpty
         List<TimeFrame> timeFrames
 ) {

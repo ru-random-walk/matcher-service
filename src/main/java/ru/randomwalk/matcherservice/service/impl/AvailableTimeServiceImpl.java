@@ -1,9 +1,9 @@
 package ru.randomwalk.matcherservice.service.impl;
 
-import com.nimbusds.jose.util.Pair;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +21,7 @@ import ru.randomwalk.matcherservice.service.util.TimeUtil;
 
 import java.time.LocalDate;
 import java.time.OffsetTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,6 +44,7 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
 
     @Override
     public void addAvailableTime(List<AvailableTime> newAvailableTimes, UUID personId) {
+        addDayLimitToAvailableTimes(newAvailableTimes);
         availableTimeRepository.saveAllAndFlush(newAvailableTimes);
         eventPublisher.publishEvent(new WalkOrganizerStartEvent(personId));
     }
@@ -96,15 +98,9 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
     }
 
     private Map<LocalDate, List<AvailableTime>> groupAvailableTimeByDate(List<AvailableTime> availableTimes) {
-        Map<LocalDate, List<AvailableTime>> dateToAvailableTimes = new HashMap<>();
-        for (var availableTime : availableTimes) {
-            if (!isDayAvailableForWalk(availableTime)) {
-                continue;
-            }
-            dateToAvailableTimes.putIfAbsent(availableTime.getDate(), new ArrayList<>());
-            dateToAvailableTimes.get(availableTime.getDate()).add(availableTime);
-        }
-        return dateToAvailableTimes;
+        return availableTimes.stream()
+                .filter(this::isDayAvailableForWalk)
+                .collect(Collectors.groupingBy(AvailableTime::getDate));
     }
 
     private boolean isDayAvailableForWalk(AvailableTime availableTime) {
@@ -147,5 +143,32 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
     private boolean isTimeDifferenceGreaterThanWalkTime(AvailableTimeOverlapModel overlapModel) {
         var overlapInterval = Pair.of(overlapModel.timeFrom(), overlapModel.timeUntil());
         return TimeUtil.isDifferenceWithinIntervalExist(overlapInterval, matcherProperties.getMinWalkTimeInSeconds());
+    }
+
+    private void addDayLimitToAvailableTimes(List<AvailableTime> availableTimes) {
+        setMaximumWalkCountForNullLimit(availableTimes);
+        List<DayLimit> dayLimits = availableTimes.stream()
+                .map(AvailableTime::getDayLimit)
+                .toList();
+
+        dayLimitRepository.saveAll(dayLimits);
+    }
+
+    private void setMaximumWalkCountForNullLimit(List<AvailableTime> availableTimes) {
+        Map<LocalDate, List<AvailableTime>> dateListMap = availableTimes.stream()
+                .collect(Collectors.groupingBy(AvailableTime::getDate));
+
+        for (var entry : dateListMap.entrySet()) {
+            var dateAvailableTimes = entry.getValue();
+            Integer maximumWalkCount = dateAvailableTimes.stream()
+                    .map(time -> ChronoUnit.SECONDS.between(time.getTimeUntil(), time.getTimeFrom()))
+                    .mapToInt(duration -> (int) (duration / matcherProperties.getMinWalkTimeInSeconds()))
+                    .sum();
+
+            dateAvailableTimes.stream()
+                    .map(AvailableTime::getDayLimit)
+                    .filter(dayLimit -> dayLimit.getWalkCount() == null)
+                    .forEach(dayLimit -> dayLimit.setWalkCount(maximumWalkCount));
+        }
     }
 }

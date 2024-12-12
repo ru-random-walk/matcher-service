@@ -1,17 +1,15 @@
 package ru.randomwalk.matcherservice.service.validation;
 
 
-import com.nimbusds.jose.util.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.dto.request.AppointmentRequestDto;
 import ru.randomwalk.matcherservice.model.dto.request.AvailableTimeRequestDto;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
-import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.model.exception.MatcherBadRequestException;
-import ru.randomwalk.matcherservice.service.util.TimeUtil;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -21,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import static ru.randomwalk.matcherservice.service.util.TimeUtil.getOverlappingInterval;
+import static ru.randomwalk.matcherservice.service.util.TimeUtil.isAfterOrEqual;
 
 @Service
 @Slf4j
@@ -29,10 +28,22 @@ public class AppointmentValidator {
 
     private final MatcherProperties matcherProperties;
 
-    public void validateCreateRequest(AppointmentRequestDto requestDto, Person person) {
+    public void validateCreateRequest(AppointmentRequestDto requestDto, List<AvailableTime> personsAvailableTime) {
+        checkThatTimeZoneIsTheSame(requestDto.availableTime());
         checkThatTimeFramesAreCorrect(requestDto.availableTime());
         checkMaximumDayLimit(requestDto.availableTime());
-        checkThatDoesNotConflictWithExistingAvailableTimes(requestDto.availableTime(), person.getAvailableTimes());
+        checkThatDoesNotConflictWithExistingAvailableTimes(requestDto.availableTime(), personsAvailableTime);
+    }
+
+    private void checkThatTimeZoneIsTheSame(List<AvailableTimeRequestDto> availableTimes) {
+        var offset = availableTimes.getFirst().timeFrames().getFirst().timeFrom().getOffset();
+        boolean offsetIsSame = availableTimes.stream()
+                .flatMap(time -> time.timeFrames().stream())
+                .allMatch(timeFrame -> offset.equals(timeFrame.timeFrom().getOffset()) && offset.equals(timeFrame.timeUntil().getOffset()));
+
+        if (!offsetIsSame) {
+            throw new MatcherBadRequestException("Time frame offset should be same for all available times");
+        }
     }
 
     private void checkThatTimeFramesAreCorrect(List<AvailableTimeRequestDto> availableTimes) {
@@ -79,12 +90,16 @@ public class AppointmentValidator {
 
     private void checkMaximumDayLimit(List<AvailableTimeRequestDto> requestDtos) {
         for (var dto : requestDtos) {
+            if (dto.walkCount() == null) {
+                continue;
+            }
+
             int maximumDayLimit = calculateMaximumDayLimit(dto.timeFrames());
             if (dto.walkCount() >= maximumDayLimit) {
                 throw new MatcherBadRequestException(
                         "Inappropriate walkCount = %d. Maximum walk count for %s is %d",
                         dto.walkCount(),
-                        dto.date().toString(),
+                        dto.date(),
                         maximumDayLimit
                 );
             }
@@ -117,8 +132,8 @@ public class AppointmentValidator {
     }
 
     private boolean isImpossibleTimeFrame(AvailableTimeRequestDto.TimeFrame timeFrame) {
-        return TimeUtil.isAfterOrEqual(timeFrame.timeFrom(), timeFrame.timeUntil())
-                && getTimeFrameDurationInSeconds(timeFrame) >= matcherProperties.getMinWalkTimeInSeconds();
+        return isAfterOrEqual(timeFrame.timeFrom(), timeFrame.timeUntil())
+                || getTimeFrameDurationInSeconds(timeFrame) >= matcherProperties.getMinWalkTimeInSeconds();
     }
 
     private long getTimeFrameDurationInSeconds(AvailableTimeRequestDto.TimeFrame timeFrame) {

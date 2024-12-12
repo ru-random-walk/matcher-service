@@ -1,11 +1,12 @@
 package ru.randomwalk.matcherservice.service.impl;
 
-import com.nimbusds.jose.util.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.model.event.WalkOrganizerStartEvent;
@@ -30,6 +31,7 @@ public class WalkOrganizerImpl implements WalkOrganizer {
     @Override
     @Async
     @EventListener(WalkOrganizerStartEvent.class)
+    @Transactional
     public void organizeWalk(WalkOrganizerStartEvent event) {
         UUID personId = event.personId();
         log.info("Starting matching algorithm for person {}", personId);
@@ -59,6 +61,7 @@ public class WalkOrganizerImpl implements WalkOrganizer {
         }
 
         return person.getAvailableTimes().stream()
+                .filter(availableTime -> availableTime.getDayLimit().getWalkCount() > 0)
                 .map(time -> Pair.of(time.getTimeFrom(), time.getTimeUntil()))
                 .anyMatch(interval -> isDifferenceWithinIntervalExist(interval, matcherProperties.getMinWalkTimeInSeconds()));
     }

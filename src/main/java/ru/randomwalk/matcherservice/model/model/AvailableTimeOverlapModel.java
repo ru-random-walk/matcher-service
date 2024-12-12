@@ -8,7 +8,6 @@ import java.time.LocalDate;
 import java.time.OffsetTime;
 
 @Builder
-@ToString
 public record AvailableTimeOverlapModel (
         LocalDate date,
         OffsetTime timeFrom,

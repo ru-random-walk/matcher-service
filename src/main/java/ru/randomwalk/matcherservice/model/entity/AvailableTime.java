@@ -21,6 +21,7 @@ import org.hibernate.annotations.TimeZoneStorageType;
 
 import java.time.LocalDate;
 import java.time.OffsetTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Getter
@@ -40,13 +41,9 @@ public class AvailableTime {
     private UUID personId;
 
     @Column(name = "TIME_FROM", nullable = false)
-    @TimeZoneStorage(TimeZoneStorageType.COLUMN)
-    @TimeZoneColumn(name = "TIMEZONE", updatable = false, insertable = false)
     private OffsetTime timeFrom;
 
     @Column(name = "TIME_UNTIL", nullable = false)
-    @TimeZoneStorage(TimeZoneStorageType.COLUMN)
-    @TimeZoneColumn(name = "TIMEZONE", updatable = false, insertable = false)
     private OffsetTime timeUntil;
 
     @Column(name = "TIMEZONE")
@@ -60,4 +57,13 @@ public class AvailableTime {
     @JoinColumn(name = "PERSON_ID", referencedColumnName = "PERSON_ID", insertable = false, updatable = false)
     @JoinColumn(name = "DATE", referencedColumnName = "DATE", insertable = false, updatable = false)
     private DayLimit dayLimit;
+
+    public OffsetTime getTimeFrom() {
+        return timeFrom.withOffsetSameInstant(ZoneOffset.of(timezone));
+    }
+
+    public OffsetTime getTimeUntil() {
+        return timeUntil.withOffsetSameInstant(ZoneOffset.of(timezone));
+    }
+
 }
