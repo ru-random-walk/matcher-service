@@ -34,7 +34,7 @@ public class AvailableTimeController {
             Principal principal
     ) {
         //for debug
-        //principal = new UserPrincipal("7b730f53-04c9-4461-814d-93b05e8577ad");
+        principal = new UserPrincipal("7b730f53-04c9-4461-814d-93b05e8577ad");
         log.info("POST /appointment/add request from {} with body: {}", principal.getName(), request);
         availableTimeFacade.addAvailableTime(request, principal);
     }

@@ -30,7 +30,7 @@ public class AvailableTimeFacadeImpl implements AvailableTimeFacade {
     public void addAvailableTime(AppointmentRequestDto dto, Principal principal) {
         UUID personId = UUID.fromString(principal.getName());
         Person person = personService.findByIdWithFetchedAvailableTime(personId);
-        appointmentValidator.validateCreateRequest(dto, person.getAvailableTimes());
+        appointmentValidator.validateCreateRequest(dto, person);
         List<AvailableTime> availableTimes = availableTimeMapper.fromRequests(dto.availableTime(), personId);
 
         availableTimeService.addAvailableTime(availableTimes, personId);

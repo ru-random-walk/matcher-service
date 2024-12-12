@@ -19,6 +19,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -31,8 +32,28 @@ public class AppointmentSchedulingServiceImpl implements AppointmentSchedulingSe
     private final MatcherProperties matcherProperties;
 
     @Override
-    @Transactional
-    public Optional<AppointmentDetails> scheduleAppointmentWithOverlap(
+    public Optional<AppointmentDetails> tryToScheduleAppointmentBetweenPeople(Person person, Person partner) {
+        try {
+            List<AvailableTimeOverlapModel> timeOverlaps = availableTimeService.getAllAvailableTimeOverlaps(
+                    person.getAvailableTimes(),
+                    partner.getAvailableTimes()
+            );
+
+            for (var overlap : timeOverlaps) {
+                Optional<AppointmentDetails> details = scheduleAppointmentWithOverlap(person, partner, overlap);
+                if (details.isPresent()) {
+                    log.info("Appointment {} was scheduled for users: {} and {}", details.get().getId(), person.getId(), partner.getId());
+                    return details;
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error scheduling appointment for {} and {}", person.getId(), partner.getId(), e);
+        }
+
+        return Optional.empty();
+    }
+
+    private Optional<AppointmentDetails> scheduleAppointmentWithOverlap(
             Person person,
             Person partner,
             AvailableTimeOverlapModel overlapModel

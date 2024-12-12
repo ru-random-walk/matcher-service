@@ -34,7 +34,13 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
-    @Transactional(propagation = Propagation.MANDATORY)
+    public Person findById(UUID personId) {
+        return personRepository.findById(personId)
+                .orElseThrow(() -> new MatcherNotFoundException("Person with id %s does not exist", personId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Stream<Person> streamSuitableCandidatesForPerson(Person person) {
         log.info("Searching for suitable candidates for {}", person.getId());
         return switch (person.getGroupFilterType()) {
@@ -75,12 +81,15 @@ public class PersonServiceImpl implements PersonService {
 
     private Stream<Person> getWithoutFilterPersonStreamForPerson(Person person) {
         log.info("Searching for partners for person {} with no filter", person.getId());
+        List<UUID> clubIds = person.getClubs().stream()
+                .map(Club::getClubId)
+                .collect(Collectors.toList());
 
         return personRepository.findByDistanceAndGroupIdsInFilterByFilterType(
                 person.getId(),
                 person.getLocation().getPosition(),
                 Double.valueOf(person.getSearchAreaInMeters()),
-                List.of(),
+                clubIds,
                 false
         );
     }

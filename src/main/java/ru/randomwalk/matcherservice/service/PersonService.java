@@ -1,5 +1,6 @@
 package ru.randomwalk.matcherservice.service;
 
+import org.springframework.transaction.annotation.Transactional;
 import ru.randomwalk.matcherservice.model.enam.FilterType;
 import ru.randomwalk.matcherservice.model.entity.Person;
 
@@ -19,6 +20,8 @@ public interface PersonService {
      * @return stream of suitable candidates that match person's filters
      */
     Stream<Person> streamSuitableCandidatesForPerson(Person person);
+
+    Person findById(UUID personId);
 
     void saveAndFlush(Person person);
     void saveAll(List<Person> people);

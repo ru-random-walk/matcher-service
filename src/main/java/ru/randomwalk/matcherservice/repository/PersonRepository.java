@@ -37,7 +37,7 @@ public interface PersonRepository extends JpaRepository<Person, UUID> {
         and (
                 (p.groupFilterType = 'ANY_MATCH' and cl.inFilter = true and cl.clubId in :groupIdsInFilter)
                 or (p.groupFilterType = 'NO_FILTER' and (:isAnyMatchSearch = false or cl.clubId in :groupIdsInFilter))
-                or (p.groupFilterType = 'ALL_MATCH' and cl.clubId in :groupIdsInFilter)
+                or (:isAnyMatchSearch = false or (p.groupFilterType = 'ALL_MATCH' and cl.clubId in :groupIdsInFilter))
             )
         order by p.inSearchFrom
     """

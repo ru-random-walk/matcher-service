@@ -22,11 +22,10 @@ import java.util.stream.Stream;
 public class PartnerMatchingManagerImpl implements PartnerMatchingManager {
 
     private final PersonService personService;
-    private final AvailableTimeService availableTimeService;
     private final AppointmentSchedulingService appointmentSchedulingService;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<Person> findPartnersAndScheduleAppointment(Person person) {
         List<Person> appointedPartners = new ArrayList<>();
 
@@ -40,22 +39,7 @@ public class PartnerMatchingManagerImpl implements PartnerMatchingManager {
     }
 
     private void scheduleAppointmentIfPossible(Person person, Person candidate, List<Person> appointedPartners) {
-        try {
-            List<AvailableTimeOverlapModel> timeOverlaps = availableTimeService.getAllAvailableTimeOverlaps(
-                    person.getAvailableTimes(),
-                    candidate.getAvailableTimes()
-            );
-
-            for (var overlap : timeOverlaps) {
-                Optional<AppointmentDetails> details = appointmentSchedulingService.scheduleAppointmentWithOverlap(person, candidate, overlap);
-                if (details.isPresent()) {
-                    log.info("Appointment {} was scheduled for users: {} and {}", details.get().getId(), person.getId(), candidate.getId());
-                    appointedPartners.add(candidate);
-                    return;
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error scheduling appointment for {} and {}", person.getId(), candidate.getId(), e);
-        }
+        appointmentSchedulingService.tryToScheduleAppointmentBetweenPeople(person, candidate)
+                .ifPresent(appointmentDetails -> appointedPartners.add(candidate));
     }
 }

@@ -7,5 +7,6 @@ import ru.randomwalk.matcherservice.model.model.AvailableTimeOverlapModel;
 import java.util.Optional;
 
 public interface AppointmentSchedulingService {
-    Optional<AppointmentDetails> scheduleAppointmentWithOverlap(Person person, Person partner, AvailableTimeOverlapModel overlapModel);
+    Optional<AppointmentDetails> tryToScheduleAppointmentBetweenPeople(Person person, Person partner);
+
 }
