@@ -1,9 +1,17 @@
 package ru.randomwalk.matcherservice.model.enam;
 
+import lombok.Getter;
+
+@Getter
 public enum AppointmentStatus {
-    NEW,
-    IN_SEARCH,
-    APPOINTED,
-    DONE,
-    CANCELED
+    REQUESTED(true),
+    APPOINTED(true),
+    DONE(false),
+    CANCELED(false);
+
+    private final boolean isActive;
+
+    AppointmentStatus(boolean isActive) {
+        this.isActive = isActive;
+    }
 }
