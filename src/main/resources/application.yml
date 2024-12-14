@@ -1,4 +1,9 @@
 spring:
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 20
   application:
     name: matcher-service
 
