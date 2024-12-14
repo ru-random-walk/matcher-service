@@ -4,6 +4,7 @@ import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.Person;
 
 import java.util.List;
+import java.util.UUID;
 
 
 public interface PartnerMatchingManager {
@@ -14,7 +15,7 @@ public interface PartnerMatchingManager {
      * Prioritize partner who has been in search the longest.
      *
      * @param person person to find partners
-     * @return list of partners with whom appointments were scheduled
+     * @return list of ids of partners with whom appointments were scheduled
      */
-    List<Person> findPartnersAndScheduleAppointment(Person person);
+    List<UUID> findPartnersAndScheduleAppointment(Person person);
 }

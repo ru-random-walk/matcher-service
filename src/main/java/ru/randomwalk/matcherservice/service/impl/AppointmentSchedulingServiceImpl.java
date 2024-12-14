@@ -13,6 +13,7 @@ import ru.randomwalk.matcherservice.model.model.AvailableTimeOverlapModel;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
 import ru.randomwalk.matcherservice.service.AppointmentSchedulingService;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
+import ru.randomwalk.matcherservice.service.PersonService;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -21,6 +22,7 @@ import java.time.OffsetTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -30,10 +32,14 @@ public class AppointmentSchedulingServiceImpl implements AppointmentSchedulingSe
     private final AvailableTimeService availableTimeService;
     private final AppointmentDetailsService appointmentDetailsService;
     private final MatcherProperties matcherProperties;
+    private final PersonService personService;
 
     @Override
-    public Optional<AppointmentDetails> tryToScheduleAppointmentBetweenPeople(Person person, Person partner) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Optional<AppointmentDetails> tryToScheduleAppointmentBetweenPeople(UUID personId, UUID partnerId) {
         try {
+            Person person = personService.findByIdWithFetchedAvailableTime(personId);
+            Person partner = personService.findByIdWithFetchedAvailableTime(partnerId);
             List<AvailableTimeOverlapModel> timeOverlaps = availableTimeService.getAllAvailableTimeOverlaps(
                     person.getAvailableTimes(),
                     partner.getAvailableTimes()
@@ -47,7 +53,7 @@ public class AppointmentSchedulingServiceImpl implements AppointmentSchedulingSe
                 }
             }
         } catch (Exception e) {
-            log.error("Error scheduling appointment for {} and {}", person.getId(), partner.getId(), e);
+            log.error("Error scheduling appointment for {} and {}", personId, partnerId, e);
         }
 
         return Optional.empty();

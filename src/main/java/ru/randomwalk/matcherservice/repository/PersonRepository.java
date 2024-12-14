@@ -4,7 +4,6 @@ import jakarta.annotation.Nullable;
 import jakarta.persistence.QueryHint;
 import org.hibernate.jpa.AvailableHints;
 import org.locationtech.jts.geom.Point;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
@@ -26,11 +25,10 @@ public interface PersonRepository extends JpaRepository<Person, UUID> {
     """)
     Optional<Person> findByIdWithFetchedAvailableTime(@Param("id") UUID id);
 
-    @EntityGraph(type = EntityGraph.EntityGraphType.LOAD, attributePaths = {"availableTimes", "availableTimes.dayLimit"})
     @Query("""
         select p from Person as p
         left join p.location as l
-        left join p.clubs as cl
+        left join fetch p.clubs as cl
         where distance(l.position, :point) <= :distanceInMeters
         and p.inSearch = true
         and p.id != :excludePersonId
@@ -45,7 +43,7 @@ public interface PersonRepository extends JpaRepository<Person, UUID> {
     @QueryHints(
             @QueryHint(name = AvailableHints.HINT_FETCH_SIZE, value = "20")
     )
-    Stream<Person> findByDistanceAndGroupIdsInFilterByFilterType(
+    Stream<Person> streamPersonByDistanceAndGroupIdsInFilterByFilterType(
             @Param("excludePersonId") UUID excludePersonId,
             @Param("point") Point point,
             @Param("distanceInMeters") Double distanceInMeters,
@@ -54,7 +52,7 @@ public interface PersonRepository extends JpaRepository<Person, UUID> {
     );
 
     @Query(value = """
-        SELECT p.* FROM PERSON p
+        SELECT p.id FROM PERSON p
             LEFT JOIN person_club pc ON p.id = pc.person_id
             LEFT JOIN location l ON p.location_id = l.id
         WHERE p.id != :excludePersonId
@@ -67,10 +65,7 @@ public interface PersonRepository extends JpaRepository<Person, UUID> {
         ORDER BY p.in_search_from
     """, nativeQuery = true
     )
-    @QueryHints(
-            @QueryHint(name = AvailableHints.HINT_FETCH_SIZE, value = "20")
-    )
-    Stream<Person> findByDistanceAndAllGroupIdsInFilter(
+    List<UUID> findByDistanceAndAllGroupIdsInFilter(
             @Param("excludePersonId") UUID excludePersonId,
             @Param("point") Point point,
             @Param("distanceInMeters") Double distanceInMeters,

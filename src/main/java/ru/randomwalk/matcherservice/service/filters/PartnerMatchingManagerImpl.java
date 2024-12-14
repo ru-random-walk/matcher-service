@@ -3,18 +3,13 @@ package ru.randomwalk.matcherservice.service.filters;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.Person;
-import ru.randomwalk.matcherservice.model.model.AvailableTimeOverlapModel;
 import ru.randomwalk.matcherservice.service.AppointmentSchedulingService;
-import ru.randomwalk.matcherservice.service.AvailableTimeService;
 import ru.randomwalk.matcherservice.service.PersonService;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -25,21 +20,14 @@ public class PartnerMatchingManagerImpl implements PartnerMatchingManager {
     private final AppointmentSchedulingService appointmentSchedulingService;
 
     @Override
-    @Transactional
-    public List<Person> findPartnersAndScheduleAppointment(Person person) {
-        List<Person> appointedPartners = new ArrayList<>();
+    public List<UUID> findPartnersAndScheduleAppointment(Person person) {
+        log.info("Searching for partners for person: {} with filterType: {}", person.getId(), person.getGroupFilterType());
 
-        try (Stream<Person> candidateStream = personService.streamSuitableCandidatesForPerson(person)) {
-            candidateStream
-                    .forEachOrdered(candidate -> scheduleAppointmentIfPossible(person, candidate, appointedPartners));
-        }
+        List<UUID> appointedPartners = personService.getSuitableCandidatesIdsForPerson(person).stream()
+                .filter(candidateId -> appointmentSchedulingService.tryToScheduleAppointmentBetweenPeople(person.getId(), candidateId).isPresent())
+                .collect(Collectors.toList());
 
         log.info("Found {} partners for user {}", appointedPartners.size(), person.getId());
         return appointedPartners;
-    }
-
-    private void scheduleAppointmentIfPossible(Person person, Person candidate, List<Person> appointedPartners) {
-        appointmentSchedulingService.tryToScheduleAppointmentBetweenPeople(person, candidate)
-                .ifPresent(appointmentDetails -> appointedPartners.add(candidate));
     }
 }

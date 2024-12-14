@@ -19,4 +19,5 @@ public interface AvailableTimeService {
      List<AvailableTime> splitAvailableTime(AvailableTime availableTime, OffsetTime splitFrom, OffsetTime splitUntil);
 
      void decrementDayLimit(DayLimit dayLimit);
+
 }

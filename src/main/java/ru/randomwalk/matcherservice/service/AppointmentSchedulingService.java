@@ -2,11 +2,11 @@ package ru.randomwalk.matcherservice.service;
 
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.Person;
-import ru.randomwalk.matcherservice.model.model.AvailableTimeOverlapModel;
 
 import java.util.Optional;
+import java.util.UUID;
 
 public interface AppointmentSchedulingService {
-    Optional<AppointmentDetails> tryToScheduleAppointmentBetweenPeople(Person person, Person partner);
+    Optional<AppointmentDetails> tryToScheduleAppointmentBetweenPeople(UUID person, UUID partner);
 
 }

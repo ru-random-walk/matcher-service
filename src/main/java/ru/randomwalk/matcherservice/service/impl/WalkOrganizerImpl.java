@@ -6,7 +6,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.model.event.WalkOrganizerStartEvent;
@@ -31,17 +30,17 @@ public class WalkOrganizerImpl implements WalkOrganizer {
     @Override
     @Async
     @EventListener(WalkOrganizerStartEvent.class)
-    @Transactional
     public void organizeWalk(WalkOrganizerStartEvent event) {
         UUID personId = event.personId();
         log.info("Starting matching algorithm for person {}", personId);
 
-        Person person = personService.findByIdWithFetchedAvailableTime(personId);
+        Person person = personService.findById(personId);
         setInSearchIfPossible(person);
         personService.saveAndFlush(person);
 
-        List<Person> partners = partnerMatchingManager.findPartnersAndScheduleAppointment(person);
+        List<UUID> partnersIds = partnerMatchingManager.findPartnersAndScheduleAppointment(person);
 
+        List<Person> partners = personService.findAllByIds(partnersIds);
         partners.forEach(this::setInSearchIfPossible);
         personService.saveAll(partners);
 

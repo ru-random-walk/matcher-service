@@ -3,7 +3,6 @@ package ru.randomwalk.matcherservice.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.randomwalk.matcherservice.model.entity.Club;
 import ru.randomwalk.matcherservice.model.entity.Person;
@@ -16,7 +15,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static ru.randomwalk.matcherservice.model.enam.FilterType.ALL_MATCH;
 
@@ -40,17 +38,22 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
+    public List<Person> findAllByIds(List<UUID> ids) {
+        return personRepository.findAllById(ids);
+    }
+
+    @Override
     @Transactional(readOnly = true)
-    public Stream<Person> streamSuitableCandidatesForPerson(Person person) {
+    public List<UUID> getSuitableCandidatesIdsForPerson(Person person) {
         log.info("Searching for suitable candidates for {}", person.getId());
         return switch (person.getGroupFilterType()) {
             case ALL_MATCH -> getAllMatchPersonStreamForPerson(person);
-            case ANY_MATCH -> getAnyMatchPersonStreamForPerson(person);
-            case NO_FILTER -> getWithoutFilterPersonStreamForPerson(person);
+            case ANY_MATCH -> getCandidatesForAnyMatchFilterPerson(person);
+            case NO_FILTER -> getCandidatesForWithoutFilterPerson(person);
         };
     }
 
-    private Stream<Person> getAllMatchPersonStreamForPerson(Person person) {
+    private List<UUID> getAllMatchPersonStreamForPerson(Person person) {
         List<UUID> clubsInFilterId = getClubsInFilterIds(person);
 
         log.info("Searching for partners for person {} with clubs that are all matching to: {}", person.getId(), clubsInFilterId);
@@ -64,34 +67,39 @@ public class PersonServiceImpl implements PersonService {
         );
     }
 
-    private Stream<Person> getAnyMatchPersonStreamForPerson(Person person) {
+    private List<UUID> getCandidatesForAnyMatchFilterPerson(Person person) {
         List<UUID> clubsInFilterId = getClubsInFilterIds(person);
         Set<UUID> clubsIdsSet = new HashSet<>(clubsInFilterId);
 
         log.info("Searching for partners for person {} with any club from list: {}", person.getId(), clubsInFilterId);
 
-        return personRepository.findByDistanceAndGroupIdsInFilterByFilterType(
+        return personRepository.streamPersonByDistanceAndGroupIdsInFilterByFilterType(
                 person.getId(),
                 person.getLocation().getPosition(),
                 Double.valueOf(person.getSearchAreaInMeters()),
                 clubsInFilterId,
                 true
-        ).filter(candidate -> filterAllGroupsMatchIfNeeded(candidate, clubsIdsSet));
+        )
+                .filter(candidate -> filterAllGroupsMatchIfNeeded(candidate, clubsIdsSet))
+                .map(Person::getId)
+                .collect(Collectors.toList());
     }
 
-    private Stream<Person> getWithoutFilterPersonStreamForPerson(Person person) {
+    private List<UUID> getCandidatesForWithoutFilterPerson(Person person) {
         log.info("Searching for partners for person {} with no filter", person.getId());
         List<UUID> clubIds = person.getClubs().stream()
                 .map(Club::getClubId)
                 .collect(Collectors.toList());
 
-        return personRepository.findByDistanceAndGroupIdsInFilterByFilterType(
+        return personRepository.streamPersonByDistanceAndGroupIdsInFilterByFilterType(
                 person.getId(),
                 person.getLocation().getPosition(),
                 Double.valueOf(person.getSearchAreaInMeters()),
                 clubIds,
                 false
-        );
+        )
+                .map(Person::getId)
+                .collect(Collectors.toList());
     }
 
     private boolean filterAllGroupsMatchIfNeeded(Person candidate, Set<UUID> clubsInFilterId) {
