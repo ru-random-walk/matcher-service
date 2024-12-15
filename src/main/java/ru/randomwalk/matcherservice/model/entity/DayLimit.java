@@ -42,4 +42,8 @@ public class DayLimit {
         @Column(name = "DATE")
         private LocalDate date;
     }
+
+    public void decrementWalkCount() {
+        this.walkCount--;
+    }
 }

@@ -9,7 +9,7 @@ $$
         FROM pg_type
         WHERE typname = 'FILTER_TYPE';
         IF NOT FOUND THEN
-            CREATE TYPE matcher.FILTER_TYPE AS ENUM ('ALL_MATCH', 'ANY_MATCH');
+            CREATE TYPE matcher.FILTER_TYPE AS ENUM ('ALL_MATCH', 'ANY_MATCH', 'NO_FILTER');
         END IF;
     END
 $$;
@@ -37,7 +37,7 @@ $$
         FROM pg_type
         WHERE typname = 'APPOINTMENT_STATUS';
         IF NOT FOUND THEN
-            CREATE TYPE matcher.APPOINTMENT_STATUS AS ENUM ('NEW', 'IN_SEARCH', 'APPOINTED', 'DONE', 'CANCELED');
+            CREATE TYPE matcher.APPOINTMENT_STATUS AS ENUM ('REQUESTED', 'APPOINTED', 'DONE', 'CANCELED');
         END IF;
     END
 $$;

@@ -1,3 +1,12 @@
 spring:
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 20
   application:
     name: matcher-service
+
+matcher:
+  min-walk-time-in-seconds: 3600
+  offset-between-walks-in-seconds: 900
