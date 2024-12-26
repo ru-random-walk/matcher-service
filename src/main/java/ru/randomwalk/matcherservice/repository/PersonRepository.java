@@ -27,9 +27,8 @@ public interface PersonRepository extends JpaRepository<Person, UUID> {
 
     @Query("""
         select p from Person as p
-        left join p.location as l
         left join fetch p.clubs as cl
-        where distance(l.position, :point) <= :distanceInMeters
+        where distance(p.currentPosition, :point) <= :distanceInMeters
         and p.inSearch = true
         and p.id != :excludePersonId
         and (
@@ -54,9 +53,8 @@ public interface PersonRepository extends JpaRepository<Person, UUID> {
     @Query(value = """
         SELECT p.id FROM PERSON p
             LEFT JOIN person_club pc ON p.id = pc.person_id
-            LEFT JOIN location l ON p.location_id = l.id
         WHERE p.id != :excludePersonId
-            AND ST_DWithin(l.position, :point, :distanceInMeters) = true
+            AND ST_DWithin(p.current_postion, :point, :distanceInMeters) = true
             AND p.in_search = true
             AND (p.group_filter_type = 'NO_FILTER' OR pc.in_filter = true)
             AND pc.club_id IN :groupIdsInFilter

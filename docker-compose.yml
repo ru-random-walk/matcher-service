@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  postgres:
+  matcher-postgres:
     container_name: postgres
     image: bitnami/postgresql:16.4.0-debian-12-r9
     ports:

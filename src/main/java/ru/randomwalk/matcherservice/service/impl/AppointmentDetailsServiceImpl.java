@@ -6,11 +6,14 @@ import org.springframework.stereotype.Service;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.Person;
+import ru.randomwalk.matcherservice.model.entity.projection.AppointmentPartner;
 import ru.randomwalk.matcherservice.repository.AppointmentDetailsRepository;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
 import ru.randomwalk.matcherservice.service.PersonService;
 
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +37,15 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
 
         log.info("Appointment {} created", appointmentDetails.getId());
         return appointmentDetails;
+    }
+
+    @Override
+    public List<AppointmentPartner> getAllPartnerIdsForPersonAppointments(UUID personId, List<AppointmentDetails> appointments) {
+        List<UUID> appointmentIds = appointments.stream()
+                .map(AppointmentDetails::getId)
+                .toList();
+
+        return appointmentDetailsRepository.getAllPartnerIdsForAppointmentsOfPerson(personId, appointmentIds);
     }
 
     private void addPerson(AppointmentDetails appointmentDetails, Person person) {

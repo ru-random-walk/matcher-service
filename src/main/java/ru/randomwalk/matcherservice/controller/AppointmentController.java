@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.randomwalk.matcherservice.model.dto.AppointmentDetailsDto;
-import ru.randomwalk.matcherservice.model.dto.response.AvailableTimeResponseDto;
+import ru.randomwalk.matcherservice.model.dto.response.UserScheduleDto;
 
 import java.security.Principal;
 import java.util.Collections;
@@ -24,7 +24,7 @@ public class AppointmentController {
 
     @DeleteMapping("/{appointmentId}/cancel")
     @Operation(summary = "Cancel an appointed walk by appointmentId")
-    public List<AvailableTimeResponseDto> cancelAppointment(
+    public List<UserScheduleDto> cancelAppointment(
             @PathVariable UUID appointmentId,
             Principal principal
     ) {

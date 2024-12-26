@@ -4,9 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.randomwalk.matcherservice.model.enam.FilterType;
 import ru.randomwalk.matcherservice.model.entity.Club;
 import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.model.exception.MatcherNotFoundException;
+import ru.randomwalk.matcherservice.repository.ClubRepository;
 import ru.randomwalk.matcherservice.repository.PersonRepository;
 import ru.randomwalk.matcherservice.service.PersonService;
 
@@ -24,6 +26,7 @@ import static ru.randomwalk.matcherservice.model.enam.FilterType.ALL_MATCH;
 public class PersonServiceImpl implements PersonService {
 
     private final PersonRepository personRepository;
+    private final ClubRepository clubRepository;
 
     @Override
     public Person findByIdWithFetchedAvailableTime(UUID personId) {
@@ -60,7 +63,7 @@ public class PersonServiceImpl implements PersonService {
 
         return personRepository.findByDistanceAndAllGroupIdsInFilter(
                 person.getId(),
-                person.getLocation().getPosition(),
+                person.getCurrentPosition(),
                 Double.valueOf(person.getSearchAreaInMeters()),
                 clubsInFilterId,
                 clubsInFilterId.size()
@@ -75,7 +78,7 @@ public class PersonServiceImpl implements PersonService {
 
         return personRepository.streamPersonByDistanceAndGroupIdsInFilterByFilterType(
                 person.getId(),
-                person.getLocation().getPosition(),
+                person.getCurrentPosition(),
                 Double.valueOf(person.getSearchAreaInMeters()),
                 clubsInFilterId,
                 true
@@ -93,7 +96,7 @@ public class PersonServiceImpl implements PersonService {
 
         return personRepository.streamPersonByDistanceAndGroupIdsInFilterByFilterType(
                 person.getId(),
-                person.getLocation().getPosition(),
+                person.getCurrentPosition(),
                 Double.valueOf(person.getSearchAreaInMeters()),
                 clubIds,
                 false
@@ -125,6 +128,44 @@ public class PersonServiceImpl implements PersonService {
     @Override
     public void save(Person person) {
         personRepository.save(person);
+    }
+
+    @Override
+    @Transactional
+    public List<Club> changeClubsInFilter(UUID personId, FilterType filterType, List<UUID> clubsInFilterIds) {
+        Person person = findById(personId);
+        person.setGroupFilterType(filterType);
+        Set<UUID> newClubsInFilter = new HashSet<>(clubsInFilterIds);
+
+        var clubs = person.getClubs();
+        clubs.forEach(club -> club.setInFilter(false));
+        clubs.stream()
+                .filter(club -> newClubsInFilter.contains(club.getClubId()))
+                .forEach(club -> club.setInFilter(true));
+
+        person.setClubs(clubs);
+        clubRepository.saveAll(clubs);
+        personRepository.save(person);
+
+        return clubs;
+    }
+
+    @Override
+    public List<Club> getClubsForPerson(UUID personId, Boolean inFilter) {
+        return clubRepository.findByPersonIdAndInFilterIs(personId, inFilter);
+    }
+
+    @Override
+    @Transactional
+    public void changeCurrentLocation(UUID personId, Double longitude, Double latitude, Integer searchAreaInMeters) {
+        Person person = findById(personId);
+
+        person.setLatitude(latitude);
+        person.setLongitude(longitude);
+        person.setSearchAreaInMeters(searchAreaInMeters);
+
+        save(person);
+        log.info("Person {} location has been changed", personId);
     }
 
     private List<UUID> getClubsInFilterIds(Person person) {

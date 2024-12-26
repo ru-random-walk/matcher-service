@@ -33,11 +33,18 @@ public class AppointmentValidator {
     private final MatcherProperties matcherProperties;
 
     public void validateCreateRequest(AppointmentRequestDto requestDto, Person person) {
+        checkThatCurrentPositionIsSet(person);
         checkThatTimeZoneIsTheSame(requestDto.availableTime());
         checkThatTimeFramesAreCorrect(requestDto.availableTime());
         checkMaximumDayLimit(requestDto.availableTime());
         checkThatDoesNotConflictWithExistingAvailableTimes(requestDto.availableTime(), person.getAvailableTimes());
         checkThatDoesNotConflictWithActiveAppointments(requestDto.availableTime(), person.getAppointments());
+    }
+
+    private void checkThatCurrentPositionIsSet(Person person) {
+        if (person.getCurrentPosition() == null) {
+            throw new MatcherBadRequestException("Current position of user should be specified firstly");
+        }
     }
 
     private void checkThatTimeZoneIsTheSame(List<AvailableTimeRequestDto> availableTimes) {

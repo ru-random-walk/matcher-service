@@ -4,18 +4,17 @@ import jakarta.annotation.Nullable;
 import lombok.Builder;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 
-import java.time.LocalTime;
 import java.time.OffsetTime;
 import java.util.UUID;
 
 @Builder
-public record AppointmentTimeFrameResponseDto(
+public record ScheduleTimeFrameDto(
         @Nullable
         UUID partnerId,
         @Nullable
         UUID appointmentId,
         OffsetTime timeFrom,
         OffsetTime timeUntil,
-        AppointmentStatus status
+        AppointmentStatus appointmentStatus
 ) {
 }
