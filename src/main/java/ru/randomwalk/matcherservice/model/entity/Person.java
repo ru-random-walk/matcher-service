@@ -45,6 +45,9 @@ public class Person {
     @Id
     private UUID id;
 
+    @Column(name = "FULL_NAME")
+    private String fullName;
+
     @Column(name = "GENDER")
     private String gender;
 

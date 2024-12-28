@@ -4,13 +4,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.randomwalk.matcherservice.model.dto.request.AddPersonDto;
 import ru.randomwalk.matcherservice.model.enam.FilterType;
 import ru.randomwalk.matcherservice.model.entity.Club;
 import ru.randomwalk.matcherservice.model.entity.Person;
+import ru.randomwalk.matcherservice.model.exception.MatcherBadRequestException;
 import ru.randomwalk.matcherservice.model.exception.MatcherNotFoundException;
 import ru.randomwalk.matcherservice.repository.ClubRepository;
 import ru.randomwalk.matcherservice.repository.PersonRepository;
 import ru.randomwalk.matcherservice.service.PersonService;
+import ru.randomwalk.matcherservice.service.mapper.PersonMapper;
 
 import java.util.HashSet;
 import java.util.List;
@@ -27,6 +30,7 @@ public class PersonServiceImpl implements PersonService {
 
     private final PersonRepository personRepository;
     private final ClubRepository clubRepository;
+    private final PersonMapper personMapper;
 
     @Override
     public Person findByIdWithFetchedAvailableTime(UUID personId) {
@@ -166,6 +170,15 @@ public class PersonServiceImpl implements PersonService {
 
         save(person);
         log.info("Person {} location has been changed", personId);
+    }
+
+    @Override
+    public void addNewPerson(AddPersonDto addPersonDto) {
+        if (personRepository.existsById(addPersonDto.id())) {
+            throw new MatcherBadRequestException("Person with id %s already exists", addPersonDto.id());
+        }
+        Person person = personMapper.createPersonEntity(addPersonDto);
+        save(person);
     }
 
     private List<UUID> getClubsInFilterIds(Person person) {

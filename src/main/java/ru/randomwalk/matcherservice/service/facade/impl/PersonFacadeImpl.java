@@ -14,6 +14,7 @@ import ru.randomwalk.matcherservice.service.PersonService;
 import ru.randomwalk.matcherservice.service.facade.PersonFacade;
 import ru.randomwalk.matcherservice.service.mapper.ClubMapper;
 import ru.randomwalk.matcherservice.service.mapper.PersonMapper;
+import ru.randomwalk.matcherservice.service.mapper.ScheduleMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -26,6 +27,7 @@ public class PersonFacadeImpl implements PersonFacade {
     private final PersonService personService;
     private final PersonMapper personMapper;
     private final ClubMapper clubMapper;
+    private final ScheduleMapper scheduleMapper;
 
     @Override
     public List<ClubDto> changeClubFilter(ClubFilterRequest request, String userName) {
@@ -70,7 +72,7 @@ public class PersonFacadeImpl implements PersonFacade {
         UUID personId = UUID.fromString(userName);
         Person person = personService.findById(personId);
 
-        return personMapper.getScheduleForPerson(person);
+        return scheduleMapper.getScheduleForPerson(person);
     }
 
 }

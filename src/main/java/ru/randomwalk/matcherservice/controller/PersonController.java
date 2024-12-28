@@ -57,7 +57,6 @@ public class PersonController {
         return personFacade.getPersonInfo(principal.getName());
     }
 
-
     @GetMapping("/clubs")
     @Operation(summary = "Get information about clubs in filter")
     public List<ClubDto> getClubs(
@@ -68,16 +67,14 @@ public class PersonController {
             Boolean inFilter,
             Principal principal
     ) {
-        log.info("GET /person/clubs, inFilter = {} from user {}", inFilter, principal.getName());
+        log.info("GET /person/clubs, inFilter = {} for user {}", inFilter, principal.getName());
         return personFacade.getClubs(inFilter, principal.getName());
     }
 
     @GetMapping("/schedule")
     @Operation(summary = "Get user's schedule")
-    public List<UserScheduleDto> getUserSchedule(
-            Principal principal
-    ) {
-        log.info("GET /appointment/available-time from user {}", principal.getName());
+    public List<UserScheduleDto> getUserSchedule(Principal principal) {
+        log.info("GET /person/schedule for user {}", principal.getName());
         return personFacade.getUserSchedule(principal.getName());
     }
 }

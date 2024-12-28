@@ -10,6 +10,7 @@ import java.util.UUID;
 @Builder
 public record PersonDto(
         UUID id,
+        String fullName,
         Integer age,
         String gender,
         LocationDto currentPosition,

@@ -3,10 +3,12 @@ package ru.randomwalk.matcherservice.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.model.entity.projection.AppointmentPartner;
+import ru.randomwalk.matcherservice.model.exception.MatcherNotFoundException;
 import ru.randomwalk.matcherservice.repository.AppointmentDetailsRepository;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
 import ru.randomwalk.matcherservice.service.PersonService;
@@ -46,6 +48,23 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
                 .toList();
 
         return appointmentDetailsRepository.getAllPartnerIdsForAppointmentsOfPerson(personId, appointmentIds);
+    }
+
+    @Override
+    public List<UUID> getAppointmentParticipants(UUID appointmentId) {
+        return appointmentDetailsRepository.getAppointmentPartnerIds(appointmentId);
+    }
+
+    @Override
+    public AppointmentDetails getById(UUID appointmentId) {
+        return appointmentDetailsRepository.findById(appointmentId)
+                .orElseThrow(() -> new MatcherNotFoundException("Appointment with id %s does not exist", appointmentId));
+    }
+
+    @Override
+    @Transactional
+    public void deleteById(UUID appointmentId) {
+        appointmentDetailsRepository.deleteById(appointmentId);
     }
 
     private void addPerson(AppointmentDetails appointmentDetails, Person person) {

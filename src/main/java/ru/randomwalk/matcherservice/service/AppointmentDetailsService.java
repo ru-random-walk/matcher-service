@@ -12,4 +12,10 @@ public interface AppointmentDetailsService {
     AppointmentDetails createAppointment(Person person, Person partner, OffsetDateTime startsAt);
 
     List<AppointmentPartner> getAllPartnerIdsForPersonAppointments(UUID personId, List<AppointmentDetails> appointments);
+
+    List<UUID> getAppointmentParticipants(UUID appointmentId);
+
+    AppointmentDetails getById(UUID appointmentId);
+
+    void deleteById(UUID appointmentId);
 }
