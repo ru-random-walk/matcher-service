@@ -11,6 +11,7 @@ lombok {
 
 group = 'ru.random-walk'
 version = '0.0.1-SNAPSHOT'
+jar.enabled = false
 
 java {
     toolchain {
