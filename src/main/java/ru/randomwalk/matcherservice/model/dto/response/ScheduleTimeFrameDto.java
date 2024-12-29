@@ -1,7 +1,9 @@
 package ru.randomwalk.matcherservice.model.dto.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import lombok.Builder;
+import org.springframework.format.annotation.DateTimeFormat;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 
 import java.time.OffsetTime;
@@ -13,7 +15,11 @@ public record ScheduleTimeFrameDto(
         UUID partnerId,
         @Nullable
         UUID appointmentId,
+        @Schema(example = "01:30:00.000+03:00")
+        @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
         OffsetTime timeFrom,
+        @Schema(example = "01:30:00.000+03:00")
+        @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
         OffsetTime timeUntil,
         AppointmentStatus appointmentStatus
 ) {
