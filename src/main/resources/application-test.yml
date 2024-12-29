@@ -1,0 +1,13 @@
+server:
+  port: 8080
+
+spring:
+  flyway:
+    locations: classpath:db/migration
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://postgres-postgresql.default.svc.cluster.local:5432/random_walk_postgres
+    username: ${MATCHER_DB_USERNAME}
+    password: ${MATCHER_DB_PASSWORD}
+    hikari:
+      schema: matcher
