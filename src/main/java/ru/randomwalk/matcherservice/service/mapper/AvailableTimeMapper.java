@@ -8,8 +8,6 @@ import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.DayLimit;
 
 import java.time.LocalDate;
-import java.time.OffsetTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -47,4 +45,6 @@ public interface AvailableTimeMapper {
                 .dayLimitId(new DayLimit.DayLimitId(personId, date))
                 .build();
     }
+
+
 }

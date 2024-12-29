@@ -1,17 +1,16 @@
 package ru.randomwalk.matcherservice.model.dto.response;
 
-import jakarta.annotation.Nullable;
 import lombok.Builder;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @Builder
-public record AvailableTimeResponseDto(
+public record UserScheduleDto(
        LocalDate date,
-       Integer timezone,
+       String timezone,
        Integer walkCount,
-       List<AppointmentTimeFrameResponseDto> timeFrames
+       List<ScheduleTimeFrameDto> timeFrames
 ) {
 
 }

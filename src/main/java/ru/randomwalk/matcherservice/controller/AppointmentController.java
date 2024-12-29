@@ -9,7 +9,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.randomwalk.matcherservice.model.dto.AppointmentDetailsDto;
-import ru.randomwalk.matcherservice.model.dto.response.AvailableTimeResponseDto;
+import ru.randomwalk.matcherservice.model.dto.response.UserScheduleDto;
+import ru.randomwalk.matcherservice.service.facade.AppointmentFacade;
 
 import java.security.Principal;
 import java.util.Collections;
@@ -22,20 +23,22 @@ import java.util.UUID;
 @RequestMapping("/appointment")
 public class AppointmentController {
 
+    private final AppointmentFacade appointmentFacade;
+
     @DeleteMapping("/{appointmentId}/cancel")
     @Operation(summary = "Cancel an appointed walk by appointmentId")
-    public List<AvailableTimeResponseDto> cancelAppointment(
+    public void cancelAppointment(
             @PathVariable UUID appointmentId,
             Principal principal
     ) {
-        log.info("DELETE /appointment/cancel for appointment {} from user {}", appointmentId, principal.getName());
-        return Collections.emptyList();
+        log.info("DELETE /appointment/{}/cancel from user {}", appointmentId, principal.getName());
+        appointmentFacade.deleteAppointment(appointmentId, principal.getName());
     }
 
     @GetMapping("/{appointmentId}")
     @Operation(summary = "Get appointment details by id")
     public AppointmentDetailsDto getAppointment(@PathVariable UUID appointmentId, Principal principal) {
         log.info("GET /appointment/{} from user {}", appointmentId, principal.getName());
-        return null;
+        return appointmentFacade.getAppointmentById(appointmentId, principal.getName());
     }
 }

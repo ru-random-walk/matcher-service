@@ -57,21 +57,11 @@ $$
     END
 $$;
 
-CREATE TABLE IF NOT EXISTS LOCATION (
-    ID uuid PRIMARY KEY,
-    REGION varchar,
-    CITY varchar,
-    COUNTRY varchar,
-    STREET varchar,
-    HOUSE varchar,
-    POSITION geometry(POINT, 4326) NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS PERSON(
     ID uuid PRIMARY KEY,
     GENDER varchar(1),
     AGE int,
-    LOCATION_ID uuid references LOCATION,
+    CURRENT_POSITION geometry(POINT, 4326),
     SEARCH_AREA_METERS int default 5000,
     GROUP_FILTER_TYPE matcher.FILTER_TYPE
 );

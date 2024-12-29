@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.randomwalk.matcherservice.model.dto.ApiErrorDto;
 import ru.randomwalk.matcherservice.model.exception.MatcherBadRequestException;
+import ru.randomwalk.matcherservice.model.exception.MatcherForbiddenException;
 import ru.randomwalk.matcherservice.model.exception.MatcherNotFoundException;
 
 @RestControllerAdvice
@@ -27,6 +28,14 @@ public class MatcherControllerAdvice {
     public ResponseEntity<ApiErrorDto> exceptionHandler(MatcherNotFoundException e) {
         log.debug("Not found exception", e);
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiErrorDto(e.getMessage()));
+    }
+
+    @ExceptionHandler({MatcherForbiddenException.class})
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResponseEntity<ApiErrorDto> exceptionHandler(MatcherForbiddenException e) {
+        log.debug("Forbidden exception", e);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiErrorDto(e.getMessage()));
     }
 }

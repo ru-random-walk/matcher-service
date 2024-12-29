@@ -17,6 +17,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -50,4 +51,12 @@ public class AppointmentDetails {
     @Column(name = "STATUS")
     @Enumerated(EnumType.STRING)
     private AppointmentStatus status;
+
+    public LocalDate getStartDate() {
+        return startsAt.toLocalDate();
+    }
+
+    public String getTimezone() {
+        return startsAt.getOffset().toString();
+    }
 }

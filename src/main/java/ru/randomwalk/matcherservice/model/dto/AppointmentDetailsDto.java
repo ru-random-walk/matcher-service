@@ -13,6 +13,7 @@ public record AppointmentDetailsDto(
         UUID id,
         List<UUID> participants,
         OffsetDateTime startsAt,
+        OffsetDateTime updatedAt,
         OffsetDateTime endedAt,
         AppointmentStatus status
 ) {
