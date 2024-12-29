@@ -4,7 +4,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.control.DeepClone;
 import ru.randomwalk.matcherservice.model.dto.request.AvailableTimeRequestDto;
-import ru.randomwalk.matcherservice.model.dto.response.UserScheduleDto;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.DayLimit;
 

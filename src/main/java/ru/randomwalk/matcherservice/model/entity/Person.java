@@ -1,5 +1,6 @@
 package ru.randomwalk.matcherservice.model.entity;
 
+import brave.internal.Nullable;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,7 +12,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,7 +28,6 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 import static java.util.Objects.requireNonNullElse;
@@ -86,7 +85,7 @@ public class Person {
     )
     private List<AppointmentDetails> appointments = new ArrayList<>();
 
-    public void setSearchAreaInMeters(Integer searchAreaInMeters) {
+    public void setSearchAreaInMeters(@Nullable Integer searchAreaInMeters) {
         this.searchAreaInMeters = requireNonNullElse(searchAreaInMeters, PERSON_DEFAULT_SEARCH_AREA_IN_METERS);
     }
 
