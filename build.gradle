@@ -27,6 +27,17 @@ configurations {
 
 repositories {
     mavenCentral()
+    repositories {
+        mavenCentral()
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/ru-random-walk/event-exchange-contract")
+            credentials {
+                username = project.findProperty("user") ?: System.getenv("GITHUB_ACTOR")
+                password = project.findProperty("token") ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
 }
 
 dependencies {
@@ -35,6 +46,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'io.micrometer:micrometer-tracing-bridge-brave'
@@ -43,6 +55,7 @@ dependencies {
     implementation 'org.flywaydb:flyway-database-postgresql'
     implementation 'org.hibernate.orm:hibernate-spatial:6.6.1.Final'
     implementation group: 'org.mapstruct', name: 'mapstruct', version: '1.5.3.Final'
+    implementation 'ru.random.walk:event-exchange-contract:1.1.1'
 
     compileOnly 'org.projectlombok:lombok:1.18.36'
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
