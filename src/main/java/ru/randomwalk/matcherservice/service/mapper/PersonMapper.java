@@ -3,6 +3,7 @@ package ru.randomwalk.matcherservice.service.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import ru.random.walk.dto.RegisteredUserInfoEvent;
 import ru.randomwalk.matcherservice.model.dto.LocationDto;
 import ru.randomwalk.matcherservice.model.dto.PersonDto;
 import ru.randomwalk.matcherservice.model.dto.request.AddPersonDto;
@@ -14,7 +15,7 @@ public interface PersonMapper {
     @Mapping(target = "currentPosition", source = "entity", qualifiedByName = "getLocationDtoFromPersonEntity")
     PersonDto toDto(Person entity);
 
-    Person createPersonEntity(AddPersonDto addPersonDto);
+    Person createPersonEntity(RegisteredUserInfoEvent addPersonDto);
 
     @Named("getLocationDtoFromPersonEntity")
     default LocationDto getLocationDtoFromPersonEntity(Person person) {

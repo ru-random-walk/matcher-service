@@ -7,6 +7,8 @@ env:
   APP_NAME: matcher-service
   IMAGE_NAME: random-walk-matcher-service
   DOCKER_REPO_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  GITHUB_ACTOR: ${{ github.actor }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   build-project-and-push-image:

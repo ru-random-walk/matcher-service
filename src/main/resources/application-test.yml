@@ -11,3 +11,5 @@ spring:
     password: ${MATCHER_DB_PASSWORD}
     hikari:
       schema: matcher
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER}

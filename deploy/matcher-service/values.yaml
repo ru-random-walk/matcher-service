@@ -17,6 +17,8 @@ env:
     value: test
   - name: TZ
     value: Etc/UTC
+  - name: KAFKA_BOOTSTRAP_SERVER
+    value: kafka-cluster.kafka.svc.cluster.local:9092
 
 secrets:
   - name: MATCHER_DB_USERNAME
