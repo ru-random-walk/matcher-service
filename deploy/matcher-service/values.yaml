@@ -27,6 +27,10 @@ secrets:
     secret_key: MATCHER_DB_PASSWORD
     secret_name: matcher-secret
 
+  - name: AUTH_SERVICE_URL
+    secret_key: AUTH_SERVICE_URL
+    secret_name: matcher-secret
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
