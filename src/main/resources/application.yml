@@ -11,6 +11,10 @@ spring:
           batch_size: 20
   application:
     name: matcher-service
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: "matcher-service"
 
 matcher:
   min-walk-time-in-seconds: 3600

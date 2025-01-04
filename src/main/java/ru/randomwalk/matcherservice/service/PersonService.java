@@ -1,5 +1,6 @@
 package ru.randomwalk.matcherservice.service;
 
+import ru.random.walk.dto.RegisteredUserInfoEvent;
 import ru.randomwalk.matcherservice.model.dto.request.AddPersonDto;
 import ru.randomwalk.matcherservice.model.enam.FilterType;
 import ru.randomwalk.matcherservice.model.entity.Club;
@@ -36,5 +37,5 @@ public interface PersonService {
 
     void changeCurrentLocation(UUID personId, Double longitude, Double latitude, Integer searchAreaInMeters);
 
-    void addNewPerson(AddPersonDto addPersonDto);
+    void addNewPerson(RegisteredUserInfoEvent addPersonDto);
 }

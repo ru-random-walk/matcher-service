@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.random.walk.dto.RegisteredUserInfoEvent;
 import ru.randomwalk.matcherservice.model.dto.request.AddPersonDto;
 import ru.randomwalk.matcherservice.model.enam.FilterType;
 import ru.randomwalk.matcherservice.model.entity.Club;
@@ -173,11 +174,12 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
-    public void addNewPerson(AddPersonDto addPersonDto) {
-        if (personRepository.existsById(addPersonDto.id())) {
-            throw new MatcherBadRequestException("Person with id %s already exists", addPersonDto.id());
+    public void addNewPerson(RegisteredUserInfoEvent userInfoEvent) {
+        if (personRepository.existsById(userInfoEvent.id())) {
+            throw new MatcherBadRequestException("Person with id %s already exists", userInfoEvent.id());
         }
-        Person person = personMapper.createPersonEntity(addPersonDto);
+
+        Person person = personMapper.createPersonEntity(userInfoEvent);
         save(person);
     }
 
