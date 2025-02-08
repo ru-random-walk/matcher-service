@@ -1,34 +1,51 @@
 package ru.randomwalk.matcherservice.service.impl;
 
-import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.context.ApplicationEventPublisher;
+import org.hibernate.Hibernate;
+import org.quartz.JobBuilder;
+import org.quartz.JobDataMap;
+import org.quartz.JobDetail;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
+import ru.randomwalk.matcherservice.model.entity.Club;
 import ru.randomwalk.matcherservice.model.entity.DayLimit;
 import ru.randomwalk.matcherservice.model.entity.Person;
-import ru.randomwalk.matcherservice.model.event.WalkOrganizerStartEvent;
-import ru.randomwalk.matcherservice.model.model.AvailableTimeOverlapModel;
+import ru.randomwalk.matcherservice.model.exception.MatcherNotFoundException;
 import ru.randomwalk.matcherservice.repository.AvailableTimeRepository;
 import ru.randomwalk.matcherservice.repository.DayLimitRepository;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
+import ru.randomwalk.matcherservice.service.PersonService;
+import ru.randomwalk.matcherservice.service.job.AppointmentManagementJob;
 import ru.randomwalk.matcherservice.service.mapper.AvailableTimeMapper;
-import ru.randomwalk.matcherservice.service.util.TimeUtil;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
+import static ru.randomwalk.matcherservice.service.job.AppointmentManagementJob.AVAILABLE_TIME_ID_JOB_KEY;
+import static ru.randomwalk.matcherservice.service.job.AppointmentManagementJob.PERSON_ID_JOB_KEY;
+import static ru.randomwalk.matcherservice.service.job.AppointmentManagementJob.TRACE_ID_JOB_KEY;
 
 @Service
 @RequiredArgsConstructor
@@ -37,33 +54,17 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
 
     private final AvailableTimeRepository availableTimeRepository;
     private final AvailableTimeMapper availableTimeMapper;
-    private final ApplicationEventPublisher eventPublisher;
     private final DayLimitRepository dayLimitRepository;
     private final MatcherProperties matcherProperties;
+    private final PersonService personService;
+    private final Scheduler scheduler;
 
     @Override
-    public void addAvailableTime(List<AvailableTime> newAvailableTimes, UUID personId) {
-        addDayLimitToAvailableTimes(newAvailableTimes);
-        availableTimeRepository.saveAllAndFlush(newAvailableTimes);
-        eventPublisher.publishEvent(new WalkOrganizerStartEvent(personId));
-    }
-
-    @Override
-    @Transactional
-    public void removeAvailableTimeForPerson(AvailableTime availableTime, Person person) {
-        person.getAvailableTimes().remove(availableTime);
-        availableTimeRepository.delete(availableTime);
-    }
-
-    @Override
-    public List<AvailableTimeOverlapModel> getAllAvailableTimeOverlaps(List<AvailableTime> first, List<AvailableTime> second) {
-        var firstDateToTimes = groupAvailableTimeByDate(first);
-        var secondDateToTimes = groupAvailableTimeByDate(second);
-
-        return firstDateToTimes.entrySet().stream()
-                .filter(entry -> secondDateToTimes.containsKey(entry.getKey()))
-                .flatMap(entry -> getStreamOfOverlappingTimeModels(entry.getValue(), secondDateToTimes.get(entry.getKey())))
-                .collect(Collectors.toList());
+    public void addAvailableTime(AvailableTime availableTimeToCreate, UUID personId) {
+        linkDayLimitToAvailableTime(availableTimeToCreate);
+        var createdAvailableTime = availableTimeRepository.saveAndFlush(availableTimeToCreate);
+        log.info("AvailableTime {} were created", createdAvailableTime.getId());
+        scheduleAppointmentManagementJob(createdAvailableTime);
     }
 
     @Override
@@ -75,99 +76,181 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
         if (!availableTime.getTimeFrom().isEqual(splitFrom)) {
             AvailableTime beforeAvailableTime = availableTimeMapper.clone(availableTime);
             beforeAvailableTime.setTimeUntil(splitFrom);
-            splitResult.add(beforeAvailableTime);
+            if (isAvailableTimeInDurationLimit(beforeAvailableTime)) {
+                splitResult.add(beforeAvailableTime);
+            }
         }
 
         if (!availableTime.getTimeUntil().isEqual(splitUntil) && availableTime.getTimeFrom().isBefore(splitUntil)) {
             AvailableTime afterAvailableTime = availableTimeMapper.clone(availableTime);
             afterAvailableTime.setTimeFrom(splitUntil);
-            splitResult.add(afterAvailableTime);
+            if (isAvailableTimeInDurationLimit(afterAvailableTime)) {
+                splitResult.add(afterAvailableTime);
+            }
         }
 
         splitResult = availableTimeRepository.saveAll(splitResult);
+        availableTimeRepository.delete(availableTime);
 
         log.info("Split complete. Result: {}", splitResult);
         return splitResult;
     }
 
+    private boolean isAvailableTimeInDurationLimit(AvailableTime availableTime) {
+        long duration = ChronoUnit.SECONDS.between(availableTime.getTimeFrom(), availableTime.getTimeUntil());
+        return duration >= matcherProperties.getMinWalkTimeInSeconds();
+    }
+
     @Override
-    public void decrementDayLimit(DayLimit dayLimit) {
+    public void decrementDayLimit(AvailableTime availableTime) {
+        DayLimit dayLimit;
+        if (Hibernate.isInitialized(availableTime.getDayLimit())) {
+            dayLimit = availableTime.getDayLimit();
+        } else {
+            dayLimit = findExistingDayLimitWithLock(availableTime);
+        }
         dayLimit.decrementWalkCount();
         dayLimitRepository.save(dayLimit);
     }
 
-    private Map<LocalDate, List<AvailableTime>> groupAvailableTimeByDate(List<AvailableTime> availableTimes) {
-        return availableTimes.stream()
-                .filter(this::isDayAvailableForWalk)
-                .collect(Collectors.groupingBy(AvailableTime::getDate));
-    }
-
-    private boolean isDayAvailableForWalk(AvailableTime availableTime) {
-        var dayLimit = availableTime.getDayLimit();
-        return dayLimit.getWalkCount() != null && dayLimit.getWalkCount() > 0;
-    }
-
-    private Stream<AvailableTimeOverlapModel> getStreamOfOverlappingTimeModels(List<AvailableTime> firstTimes, List<AvailableTime> secondTimes) {
-        return firstTimes.stream()
-                .flatMap(time -> getStreamOfFoundOverlapModels(time, secondTimes));
-    }
-
-    private Stream<AvailableTimeOverlapModel> getStreamOfFoundOverlapModels(AvailableTime initialTime, List<AvailableTime> times) {
-        return times.stream()
-                .map(time -> getOverlapModel(initialTime, time))
-                .filter(Objects::nonNull)
-                .filter(this::isTimeDifferenceGreaterThanWalkTime);
-    }
-
-    @Nullable
-    private AvailableTimeOverlapModel getOverlapModel(AvailableTime firstAvailableTime, AvailableTime secondAvailableTime) {
-        Pair<OffsetTime, OffsetTime> overlap = TimeUtil.getOverlappingInterval(
-                Pair.of(firstAvailableTime.getTimeFrom(), firstAvailableTime.getTimeUntil()),
-                Pair.of(secondAvailableTime.getTimeFrom(), secondAvailableTime.getTimeUntil())
-        );
-
-        if (overlap == null) {
-            return null;
+    @Override
+    public int getCurrentWalkCountWithLock(AvailableTime availableTime) {
+        if (Hibernate.isInitialized(availableTime.getDayLimit())) {
+            return availableTime.getDayLimit().getWalkCount();
+        } else {
+            return findExistingDayLimitWithLock(availableTime).getWalkCount();
         }
+    }
 
-        return new AvailableTimeOverlapModel(
-                firstAvailableTime.getDate(),
-                overlap.getLeft(),
-                overlap.getRight(),
-                firstAvailableTime,
-                secondAvailableTime
+    @Override
+    public AvailableTime getById(UUID id) {
+        return availableTimeRepository.findById(id)
+                .orElseThrow(() -> new MatcherNotFoundException("Available time with id=%s does not exist", id));
+    }
+
+    @Override
+    public List<AvailableTime> findMatchesForAvailableTime(AvailableTime availableTimeToFindMatches) {
+        List<AvailableTime> matchingTimes = availableTimeRepository.findMatchingAvailableTimes(
+                availableTimeToFindMatches.getPersonId(),
+                availableTimeToFindMatches.getLocation(),
+                availableTimeToFindMatches.getSearchAreaInMeters(),
+                availableTimeToFindMatches.getDate(),
+                availableTimeToFindMatches.getTimeFrom(),
+                availableTimeToFindMatches.getTimeUntil()
         );
+
+        Person initialPerson = personService.findById(availableTimeToFindMatches.getPersonId());
+        Map<UUID, Person> personMap = getPersonByAvailableTimeMap(matchingTimes);
+
+        return matchingTimes.stream()
+                .filter(matchingTime -> filterGroups(availableTimeToFindMatches, matchingTime, personMap))
+                .map(time -> Pair.of(time, personService.getClubsSimilarityBetweenPeople(initialPerson, personMap.get(time.getPersonId()))))
+                .sorted(Comparator.comparingInt(Pair::getRight))
+                .map(Pair::getLeft)
+                .collect(Collectors.toList());
     }
 
-    private boolean isTimeDifferenceGreaterThanWalkTime(AvailableTimeOverlapModel overlapModel) {
-        var overlapInterval = Pair.of(overlapModel.timeFrom(), overlapModel.timeUntil());
-        return TimeUtil.isDifferenceWithinIntervalExist(overlapInterval, matcherProperties.getMinWalkTimeInSeconds());
-    }
-
-    private void addDayLimitToAvailableTimes(List<AvailableTime> availableTimes) {
-        setMaximumWalkCountForNullLimit(availableTimes);
-        List<DayLimit> dayLimits = availableTimes.stream()
-                .map(AvailableTime::getDayLimit)
+    private Map<UUID, Person> getPersonByAvailableTimeMap(List<AvailableTime> availableTimes) {
+        List<UUID> peopleIds = availableTimes.stream()
+                .map(AvailableTime::getPersonId)
                 .toList();
 
-        dayLimitRepository.saveAll(dayLimits);
+        Map<UUID, Person> personById = personService.findAllWithFetchedClubs(peopleIds)
+                .stream()
+                .collect(Collectors.toMap(Person::getId, Function.identity()));
+
+        return availableTimes.stream()
+                .collect(Collectors.toMap(AvailableTime::getId, time -> personById.get(time.getPersonId())));
     }
 
-    private void setMaximumWalkCountForNullLimit(List<AvailableTime> availableTimes) {
-        Map<LocalDate, List<AvailableTime>> dateListMap = availableTimes.stream()
-                .collect(Collectors.groupingBy(AvailableTime::getDate));
+    private boolean filterGroups(AvailableTime availableTimeToFindMatches, AvailableTime matchingTime, Map<UUID, Person> personMap) {
+        Set<UUID> groupsInFilter = availableTimeToFindMatches.getClubsInFilter();
+        Set<UUID> matchingTimeGroupsInFilter = matchingTime.getClubsInFilter();
 
-        for (var entry : dateListMap.entrySet()) {
-            var dateAvailableTimes = entry.getValue();
-            Integer maximumWalkCount = dateAvailableTimes.stream()
-                    .map(time -> ChronoUnit.SECONDS.between(time.getTimeUntil(), time.getTimeFrom()))
-                    .mapToInt(duration -> (int) (duration / matcherProperties.getMinWalkTimeInSeconds()))
-                    .sum();
-
-            dateAvailableTimes.stream()
-                    .map(AvailableTime::getDayLimit)
-                    .filter(dayLimit -> dayLimit.getWalkCount() == null)
-                    .forEach(dayLimit -> dayLimit.setWalkCount(maximumWalkCount));
+        if (!matchingTimeGroupsInFilter.isEmpty() && !groupsInFilter.isEmpty()) {
+            return matchingTimeGroupsInFilter.stream().anyMatch(groupsInFilter::contains);
         }
+
+        if (!groupsInFilter.isEmpty()) {
+            return personMap.get(matchingTime.getPersonId()).getClubs().stream()
+                    .map(Club::getClubId)
+                    .anyMatch(groupsInFilter::contains);
+        }
+
+        return true;
+    }
+
+    private DayLimit findExistingDayLimitWithLock(AvailableTime availableTime) {
+        return dayLimitRepository
+                .findByIdWithLock(new DayLimit.DayLimitId(availableTime.getPersonId(), availableTime.getDate()))
+                .orElseThrow(() -> new MatcherNotFoundException("DayLimit does not exist"));
+    }
+
+    private void linkDayLimitToAvailableTime(AvailableTime availableTime) {
+        var dayLimit = getOrCreateDayLimit(availableTime.getPersonId(), availableTime.getDate());
+        availableTime.setDayLimit(dayLimit);
+    }
+
+
+    private DayLimit getOrCreateDayLimit(UUID personId, LocalDate date) {
+        Optional<DayLimit> optionalDayLimit = dayLimitRepository.findByIdWithLock(new DayLimit.DayLimitId(personId, date));
+
+        if (optionalDayLimit.isEmpty()) {
+            DayLimit dayLimit = new DayLimit();
+            dayLimit.setDayLimitId(new DayLimit.DayLimitId(personId, date));
+            return dayLimitRepository.save(dayLimit);
+        }
+
+        return optionalDayLimit.get();
+    }
+
+
+    private void scheduleAppointmentManagementJob(AvailableTime availableTime) {
+        JobDetail jobDetail = getJobDetail(availableTime);
+        log.info("Scheduling appointment management job: {}", jobDetail.getKey());
+        Trigger trigger = createTrigger(jobDetail);
+        try {
+            if (scheduler.checkExists(jobDetail.getKey())) {
+                log.info("Job {} already exists. Deleting it", jobDetail.getKey());
+                scheduler.deleteJob(jobDetail.getKey());
+            }
+            scheduler.scheduleJob(jobDetail, trigger);
+            log.info("Job {} is scheduled", jobDetail.getKey());
+        } catch (SchedulerException e) {
+            log.error("Error scheduling job {}", jobDetail.getKey(), e);
+        }
+    }
+
+    private JobDetail getJobDetail(AvailableTime availableTime) {
+        String jobName = getJobName(availableTime);
+        return JobBuilder
+                .newJob(AppointmentManagementJob.class)
+                .withIdentity(jobName)
+                .usingJobData(getJobDataMap(availableTime))
+                .build();
+    }
+
+    private Trigger createTrigger(JobDetail jobDetail) {
+        Date startDate = Date.from(LocalDateTime.now().plusSeconds(matcherProperties.getAppointmentManagerDelaySeconds()).toInstant(ZoneOffset.UTC));
+        return TriggerBuilder
+                .newTrigger()
+                .withIdentity(jobDetail.getKey().getName())
+                .forJob(jobDetail.getKey())
+                .startAt(startDate)
+                .build();
+    }
+
+    private String getJobName(AvailableTime time) {
+        return String.format("AppointmentManagementJob-%s-%s", time.getPersonId(), time.getId());
+    }
+
+    private JobDataMap getJobDataMap(AvailableTime availableTime) {
+        JobDataMap jobDataMap = new JobDataMap();
+
+        jobDataMap.put(AVAILABLE_TIME_ID_JOB_KEY, availableTime.getId());
+        jobDataMap.put(PERSON_ID_JOB_KEY, availableTime.getPersonId());
+        jobDataMap.put(TRACE_ID_JOB_KEY, MDC.get("traceId"));
+
+        return jobDataMap;
     }
 }

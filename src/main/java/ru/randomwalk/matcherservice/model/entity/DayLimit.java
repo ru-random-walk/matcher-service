@@ -16,6 +16,8 @@ import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import static ru.randomwalk.matcherservice.service.util.MatcherConstants.DEFAULT_WALK_COUNT;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,7 +31,7 @@ public class DayLimit {
     private DayLimitId dayLimitId;
 
     @Column(name = "WALK_COUNT")
-    private Integer walkCount = 1;
+    private Integer walkCount = DEFAULT_WALK_COUNT;
 
     @Embeddable
     @Data
@@ -44,6 +46,8 @@ public class DayLimit {
     }
 
     public void decrementWalkCount() {
-        this.walkCount--;
+        if (this.walkCount > 0) {
+            this.walkCount--;
+        }
     }
 }

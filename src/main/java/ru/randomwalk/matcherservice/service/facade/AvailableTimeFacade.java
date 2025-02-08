@@ -1,10 +1,10 @@
 package ru.randomwalk.matcherservice.service.facade;
 
-import ru.randomwalk.matcherservice.model.dto.request.AppointmentRequestDto;
+import ru.randomwalk.matcherservice.model.dto.AvailableTimeCreateDto;
 
 import java.security.Principal;
 
 public interface AvailableTimeFacade {
 
-    void addAvailableTime(AppointmentRequestDto dto, Principal principal);
+    void addAvailableTime(AvailableTimeCreateDto dto, Principal principal);
 }

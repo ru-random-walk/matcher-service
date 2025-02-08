@@ -7,18 +7,22 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.locationtech.jts.geom.Point;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
+import ru.randomwalk.matcherservice.service.util.GeometryUtil;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -52,11 +56,22 @@ public class AppointmentDetails {
     @Enumerated(EnumType.STRING)
     private AppointmentStatus status;
 
+    @Column(name = "APPROXIMATE_LOCATION")
+    private Point location;
+
     public LocalDate getStartDate() {
         return startsAt.toLocalDate();
     }
 
     public String getTimezone() {
         return startsAt.getOffset().toString();
+    }
+
+    public double getLongitude() {
+        return GeometryUtil.getLongitude(location);
+    }
+
+    public double getLatitude() {
+        return GeometryUtil.getLatitude(location);
     }
 }

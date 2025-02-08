@@ -10,10 +10,5 @@ import java.util.UUID;
 
 public interface ClubRepository extends JpaRepository<Club, Club.PersonClubId> {
 
-    @Query("""
-        select c from Club as c
-        where c.personId = :personId
-        and (:inFilter is null or c.inFilter = :inFilter)
-        """)
-    List<Club> findByPersonIdAndInFilterIs(@Param("personId") UUID personId, @Param("inFilter") Boolean inFilter);
+    List<Club> findByPersonId(UUID personId);
 }

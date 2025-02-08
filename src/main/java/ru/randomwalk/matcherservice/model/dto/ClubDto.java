@@ -6,6 +6,5 @@ import java.util.UUID;
 
 @Builder
 public record ClubDto(
-        UUID id,
-        Boolean inFilter
+        UUID id
 ) { }

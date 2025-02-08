@@ -9,12 +9,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.randomwalk.matcherservice.model.dto.AppointmentDetailsDto;
-import ru.randomwalk.matcherservice.model.dto.response.UserScheduleDto;
 import ru.randomwalk.matcherservice.service.facade.AppointmentFacade;
 
 import java.security.Principal;
-import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
 
 @RestController

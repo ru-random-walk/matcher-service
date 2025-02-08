@@ -2,6 +2,7 @@ package ru.randomwalk.matcherservice.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Point;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
@@ -26,16 +27,15 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
     private final PersonService personService;
 
     @Override
-    public AppointmentDetails createAppointment(Person person, Person partner, OffsetDateTime startsAt) {
-        log.info("Create appointment for people with ids: {}, {}. Starts at: {}", person.getId(), partner.getId(), startsAt);
+    public AppointmentDetails createAppointment(UUID personId, UUID partnerId, OffsetDateTime startsAt, Point approximateLocation) {
+        log.info("Create appointment for people with ids: {}, {}. Starts at: {}", personId, partnerId, startsAt);
         AppointmentDetails appointmentDetails = new AppointmentDetails();
         appointmentDetails.setStatus(AppointmentStatus.APPOINTED);
         appointmentDetails.setStartsAt(startsAt);
+        appointmentDetails.setLocation(approximateLocation);
 
         appointmentDetails = appointmentDetailsRepository.save(appointmentDetails);
-
-        addPerson(appointmentDetails, person);
-        addPerson(appointmentDetails, partner);
+        linkMembersToAppointment(appointmentDetails, personId, partnerId);
 
         log.info("Appointment {} created", appointmentDetails.getId());
         return appointmentDetails;
@@ -67,8 +67,9 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
         appointmentDetailsRepository.deleteById(appointmentId);
     }
 
-    private void addPerson(AppointmentDetails appointmentDetails, Person person) {
-        person.getAppointments().add(appointmentDetails);
-        personService.save(person);
+    private void linkMembersToAppointment(AppointmentDetails appointmentDetails, UUID... membersIds) {
+        List<Person> people = personService.findAllByIds(List.of(membersIds));
+        people.forEach(person -> person.getAppointments().add(appointmentDetails));
+        personService.saveAll(people);
     }
 }

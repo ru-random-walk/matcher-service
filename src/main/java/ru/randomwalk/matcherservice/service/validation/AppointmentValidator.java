@@ -6,20 +6,27 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
-import ru.randomwalk.matcherservice.model.dto.request.AppointmentRequestDto;
-import ru.randomwalk.matcherservice.model.dto.request.AvailableTimeRequestDto;
+import ru.randomwalk.matcherservice.model.dto.AvailableTimeCreateDto;
+import ru.randomwalk.matcherservice.model.dto.TimePeriod;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
+import ru.randomwalk.matcherservice.model.entity.Club;
+import ru.randomwalk.matcherservice.model.entity.DayLimit;
 import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.model.exception.MatcherBadRequestException;
+import ru.randomwalk.matcherservice.repository.DayLimitRepository;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static ru.randomwalk.matcherservice.service.util.TimeUtil.getOverlappingInterval;
@@ -31,126 +38,106 @@ import static ru.randomwalk.matcherservice.service.util.TimeUtil.isAfterOrEqual;
 public class AppointmentValidator {
 
     private final MatcherProperties matcherProperties;
+    private final DayLimitRepository dayLimitRepository;
 
-    public void validateCreateRequest(AppointmentRequestDto requestDto, Person person) {
-        checkThatCurrentPositionIsSet(person);
-        checkThatTimeZoneIsTheSame(requestDto.availableTime());
-        checkThatTimeFramesAreCorrect(requestDto.availableTime());
-        checkMaximumDayLimit(requestDto.availableTime());
-        checkThatDoesNotConflictWithExistingAvailableTimes(requestDto.availableTime(), person.getAvailableTimes());
-        checkThatDoesNotConflictWithActiveAppointments(requestDto.availableTime(), person.getAppointments());
+    public void validateCreateRequest(AvailableTimeCreateDto requestDto, Person person) {
+        checkThatTimeZoneIsTheSame(requestDto);
+        checkThatTimeFramesAreCorrect(requestDto);
+        checkThatClubsInFilterAreCorrect(requestDto.clubsInFilter(), person);
+        checkThatDayLimitIsNotExceeded(person.getId(), requestDto.date());
+        checkThatDoesNotConflictWithExistingAvailableTimes(requestDto, person.getAvailableTimes());
+        checkThatDoesNotConflictWithActiveAppointments(requestDto, person.getAppointments());
     }
 
-    private void checkThatCurrentPositionIsSet(Person person) {
-        if (person.getCurrentPosition() == null) {
-            throw new MatcherBadRequestException("Current position of user should be specified firstly");
-        }
-    }
-
-    private void checkThatTimeZoneIsTheSame(List<AvailableTimeRequestDto> availableTimes) {
-        var offset = availableTimes.getFirst().timeFrames().getFirst().timeFrom().getOffset();
-        boolean offsetIsSame = availableTimes.stream()
-                .flatMap(time -> time.timeFrames().stream())
-                .allMatch(timeFrame -> offset.equals(timeFrame.timeFrom().getOffset()) && offset.equals(timeFrame.timeUntil().getOffset()));
+    private void checkThatTimeZoneIsTheSame(AvailableTimeCreateDto dto) {
+        boolean offsetIsSame = Objects.equals(dto.timeFrom().getOffset(), dto.timeUntil().getOffset());
 
         if (!offsetIsSame) {
-            throw new MatcherBadRequestException("Time frame offset should be same for all available times");
+            throw new MatcherBadRequestException("Time frame offset should be same for timeFrom and timeUntil");
         }
     }
 
-    private void checkThatTimeFramesAreCorrect(List<AvailableTimeRequestDto> availableTimes) {
-        availableTimes.stream()
-                .flatMap(request -> request.timeFrames().stream())
-                .filter(this::isImpossibleTimeFrame)
+    private void checkThatTimeFramesAreCorrect(AvailableTimeCreateDto createDto) {
+        if (isImpossibleTimeFrame(createDto.timeFrom(), createDto.timeUntil())) {
+            throw new MatcherBadRequestException(
+                    "Impossible time frame [%s; %s]",
+                    createDto.timeFrom(),
+                    createDto.timeUntil()
+            );
+        }
+    }
+
+    private void checkThatClubsInFilterAreCorrect(List<UUID> clubsInFilter, Person person) {
+        if (clubsInFilter == null) {
+            return;
+        }
+        Set<UUID> personClubs = person.getClubs().stream().map(Club::getClubId).collect(Collectors.toSet());
+        clubsInFilter.stream()
+                .filter(personClubs::contains)
                 .findAny()
-                .ifPresent(timeFrame -> {
-                    throw new MatcherBadRequestException(
-                            "Impossible time frame [%s; %s]",
-                            timeFrame.timeFrom(),
-                            timeFrame.timeUntil()
-                    );
+                .ifPresent(clubId -> {
+                    throw new MatcherBadRequestException("User %s does not have club %s", person.getId(), clubId);
                 });
     }
 
-    private void checkThatDoesNotConflictWithActiveAppointments(List<AvailableTimeRequestDto> requestDtos, List<AppointmentDetails> appointmentDetails) {
+    private void checkThatDayLimitIsNotExceeded(UUID personId, LocalDate date) {
+        dayLimitRepository.findById(new DayLimit.DayLimitId(personId, date))
+                .ifPresent(dayLimit -> {
+                    if (dayLimit.getWalkCount() == 0) {
+                        throw new MatcherBadRequestException("Day limit for {} is exceeded", date);
+                    }
+                });
+    }
+
+    private void checkThatDoesNotConflictWithActiveAppointments(AvailableTimeCreateDto dto, List<AppointmentDetails> appointmentDetails) {
         Map<LocalDate, List<OffsetDateTime>> activeAppointmentTime = appointmentDetails.stream()
                 .filter(detail -> detail.getStatus().isActive())
                 .map(AppointmentDetails::getStartsAt)
                 .collect(Collectors.groupingBy(OffsetDateTime::toLocalDate));
 
-        for (var dto : requestDtos) {
-            List<OffsetDateTime> appointmentStarts = activeAppointmentTime.get(dto.date());
-            if (appointmentStarts == null) {
-                continue;
-            }
-
-            for (var timeFrame : dto.timeFrames()) {
-                for (var appointment : appointmentStarts) {
-                    if (conflictsWithAppointmentTime(timeFrame, appointment)) {
-                        throw new MatcherBadRequestException(
-                                "Time frame %s [%s; %s] conflicts with existing appointment with start time: %s",
-                                dto.date(),
-                                timeFrame.timeFrom(),
-                                timeFrame.timeUntil(),
-                                appointment.atZoneSameInstant(timeFrame.timeFrom().getOffset())
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    private void checkThatDoesNotConflictWithExistingAvailableTimes(List<AvailableTimeRequestDto> requestDtos, List<AvailableTime> availableTimes) {
-        var dateToAvailableTimeMap = getDateToAvailableTimeMap(availableTimes);
-        for (var dto : requestDtos) {
-            List<AvailableTime> existingAvailableTimes = dateToAvailableTimeMap.get(dto.date());
-            if (existingAvailableTimes == null || existingAvailableTimes.isEmpty()) {
-                continue;
-            }
-
-            for (var timeFrame : dto.timeFrames()) {
-                for (var existingAvailableTime : existingAvailableTimes) {
-                    if (isConflictingTimeFrame(timeFrame, existingAvailableTime)) {
-                        throw new MatcherBadRequestException(
-                                "Time frame %s [%s; %s] conflicts with existing available time %s [%s; %s]",
-                                dto.date(),
-                                timeFrame.timeFrom(),
-                                timeFrame.timeUntil(),
-                                existingAvailableTime.getDate(),
-                                existingAvailableTime.getTimeFrom(),
-                                existingAvailableTime.getTimeUntil()
-                        );
-                    }
-                }
-            }
-
+        List<OffsetDateTime> appointmentStarts = activeAppointmentTime.get(dto.date());
+        if (appointmentStarts == null) {
+            return;
         }
 
-    }
-
-    private void checkMaximumDayLimit(List<AvailableTimeRequestDto> requestDtos) {
-        for (var dto : requestDtos) {
-            if (dto.walkCount() == null) {
-                continue;
-            }
-
-            int maximumDayLimit = calculateMaximumDayLimit(dto.timeFrames());
-            if (dto.walkCount() > maximumDayLimit || dto.walkCount() <= 0) {
+        for (var appointment : appointmentStarts) {
+            if (conflictsWithAppointmentTime(dto.timeFrom(), dto.timeUntil(), appointment)) {
                 throw new MatcherBadRequestException(
-                        "Inappropriate walkCount = %d. Maximum walk count for %s is %d",
-                        dto.walkCount(),
+                        "Time frame %s [%s; %s] conflicts with existing appointment with start time: %s",
                         dto.date(),
-                        maximumDayLimit
+                        dto.timeFrom(),
+                        dto.timeUntil(),
+                        appointment.atZoneSameInstant(dto.timeFrom().getOffset())
                 );
             }
         }
     }
 
-    private Integer calculateMaximumDayLimit(List<AvailableTimeRequestDto.TimeFrame> timeFrames) {
-        return timeFrames.stream()
-                .map(this::getTimeFrameDurationInSeconds)
-                .mapToInt(walkDuration -> (int) (walkDuration / matcherProperties.getMinWalkTimeInSeconds()))
-                .sum();
+    private void checkThatDoesNotConflictWithExistingAvailableTimes(AvailableTimeCreateDto dto, List<AvailableTime> availableTimes) {
+        var dateToAvailableTimeMap = getDateToAvailableTimeMap(availableTimes);
+        List<AvailableTime> existingAvailableTimes = dateToAvailableTimeMap.get(dto.date());
+        if (existingAvailableTimes == null || existingAvailableTimes.isEmpty()) {
+            return;
+        }
+
+        for (var existingAvailableTime : existingAvailableTimes) {
+            if (isConflictingTimeFrame(dto.timeFrom(), dto.timeUntil(), existingAvailableTime)) {
+                throw new MatcherBadRequestException(
+                        "Time frame %s [%s; %s] conflicts with existing available time %s [%s; %s]",
+                        dto.date(),
+                        dto.timeFrom(),
+                        dto.timeUntil(),
+                        existingAvailableTime.getDate(),
+                        existingAvailableTime.getTimeFrom(),
+                        existingAvailableTime.getTimeUntil()
+                );
+            }
+        }
+    }
+
+    private Integer calculateMaximumDayLimit(OffsetTime timeFrom, OffsetTime timeUntil) {
+        long duration = ChronoUnit.SECONDS.between(timeFrom, timeUntil);
+        return (int) duration / matcherProperties.getMinWalkTimeInSeconds();
     }
 
     private Map<LocalDate, List<AvailableTime>> getDateToAvailableTimeMap(List<AvailableTime> availableTimes) {
@@ -162,30 +149,27 @@ public class AppointmentValidator {
         return dateToAvailableTimeMap;
     }
 
-    private boolean isConflictingTimeFrame(AvailableTimeRequestDto.TimeFrame timeFrame, AvailableTime availableTime) {
+    private boolean isConflictingTimeFrame(OffsetTime timeFrom, OffsetTime timeUntil, AvailableTime availableTime) {
         var overlap = getOverlappingInterval(
-                Pair.of(timeFrame.timeFrom(), timeFrame.timeUntil()),
-                Pair.of(availableTime.getTimeFrom(), availableTime.getTimeUntil())
+                TimePeriod.of(timeFrom, timeUntil),
+                TimePeriod.of(availableTime.getTimeFrom(), availableTime.getTimeUntil())
         );
 
         return overlap != null;
     }
 
-    private boolean conflictsWithAppointmentTime(AvailableTimeRequestDto.TimeFrame timeFrame, OffsetDateTime appointmentTime) {
+    private boolean conflictsWithAppointmentTime(OffsetTime timeFrom, OffsetTime timeUntil, OffsetDateTime appointmentTime) {
         var overlap = getOverlappingInterval(
-                Pair.of(timeFrame.timeFrom(), timeFrame.timeUntil()),
-                Pair.of(appointmentTime.toOffsetTime(), appointmentTime.toOffsetTime().plusSeconds(matcherProperties.getMinWalkTimeInSeconds()))
+                TimePeriod.of(timeFrom, timeUntil),
+                TimePeriod.of(appointmentTime.toOffsetTime(), appointmentTime.toOffsetTime().plusSeconds(matcherProperties.getMinWalkTimeInSeconds()))
         );
 
         return overlap != null;
     }
 
-    private boolean isImpossibleTimeFrame(AvailableTimeRequestDto.TimeFrame timeFrame) {
-        return isAfterOrEqual(timeFrame.timeFrom(), timeFrame.timeUntil())
-                || getTimeFrameDurationInSeconds(timeFrame) < matcherProperties.getMinWalkTimeInSeconds();
+    private boolean isImpossibleTimeFrame(OffsetTime timeFrom, OffsetTime timeUntil) {
+        return isAfterOrEqual(timeFrom, timeUntil)
+                || ChronoUnit.SECONDS.between(timeFrom, timeUntil) < matcherProperties.getMinWalkTimeInSeconds();
     }
 
-    private long getTimeFrameDurationInSeconds(AvailableTimeRequestDto.TimeFrame timeFrame) {
-        return ChronoUnit.SECONDS.between(timeFrame.timeFrom(), timeFrame.timeUntil());
-    }
 }

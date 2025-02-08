@@ -8,7 +8,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.stereotype.Component;
 
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,4 +18,5 @@ import org.springframework.stereotype.Component;
 public class MatcherProperties {
     private Integer minWalkTimeInSeconds;
     private Integer offsetBetweenWalksInSeconds;
+    private Integer appointmentManagerDelaySeconds;
 }

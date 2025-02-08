@@ -35,9 +35,6 @@ public class Club {
     @Id
     private UUID clubId;
 
-    @Column(name = "IN_FILTER")
-    private boolean inFilter = false;
-
     @Data
     @Builder
     @NoArgsConstructor
