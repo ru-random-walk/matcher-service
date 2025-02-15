@@ -23,6 +23,8 @@ public record AppointmentDetailsDto(
         @Schema(example = "2024-10-31T01:30:00.000+03:00")
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
         OffsetDateTime endedAt,
-        AppointmentStatus status
+        AppointmentStatus status,
+        Double longitude,
+        Double latitude
 ) {
 }

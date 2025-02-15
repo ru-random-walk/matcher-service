@@ -3,12 +3,10 @@ package ru.randomwalk.matcherservice.service.mapper;
 import brave.internal.collect.Lists;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.mapstruct.Mapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
-import ru.randomwalk.matcherservice.model.dto.response.ScheduleTimeFrameDto;
-import ru.randomwalk.matcherservice.model.dto.response.UserScheduleDto;
+import ru.randomwalk.matcherservice.model.dto.ScheduleTimeFrameDto;
+import ru.randomwalk.matcherservice.model.dto.UserScheduleDto;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.Person;
@@ -16,6 +14,7 @@ import ru.randomwalk.matcherservice.model.entity.projection.AppointmentPartner;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -96,6 +95,9 @@ public class ScheduleMapper {
                         ScheduleTimeFrameDto.builder()
                                 .timeFrom(time.getTimeFrom())
                                 .timeUntil(time.getTimeUntil())
+                                .availableTimeClubsInFilter(new ArrayList<>(time.getClubsInFilter()))
+                                .latitude(time.getLatitude())
+                                .longitude(time.getLongitude())
                                 .build()
                 ).collect(Collectors.toList());
     }
@@ -116,6 +118,8 @@ public class ScheduleMapper {
                                 .timeFrom(appointment.getStartsAt().toOffsetTime())
                                 .timeUntil(appointment.getStartsAt().toOffsetTime().plusHours(matcherProperties.getMinWalkTimeInSeconds()))
                                 .partnerId(appointmentToPartnerMap.get(appointment.getId()))
+                                .longitude(appointment.getLongitude())
+                                .latitude(appointment.getLatitude())
                                 .build()
                 ).collect(Collectors.toList());
     }

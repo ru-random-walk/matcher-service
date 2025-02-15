@@ -9,13 +9,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import ru.randomwalk.matcherservice.model.dto.request.AppointmentRequestDto;
-import ru.randomwalk.matcherservice.model.dto.response.UserScheduleDto;
+import ru.randomwalk.matcherservice.model.dto.AvailableTimeCreateDto;
 import ru.randomwalk.matcherservice.service.facade.AvailableTimeFacade;
 
 import java.security.Principal;
-import java.util.Collections;
-import java.util.List;
 
 @RestController
 @Slf4j
@@ -28,7 +25,7 @@ public class AvailableTimeController {
     @PostMapping("/add")
     @Operation(summary = "Add available time to schedule and search for appointments")
     public void addAvailableTime(
-            @Validated @RequestBody AppointmentRequestDto request,
+            @Validated @RequestBody AvailableTimeCreateDto request,
             Principal principal
     ) {
         log.info("POST /appointment/add request from {} with body: {}", principal.getName(), request);
@@ -36,12 +33,11 @@ public class AvailableTimeController {
     }
 
     @PutMapping("/change")
-    @Operation(summary = "Change available time and search for appointments")
-    public List<UserScheduleDto> changeSchedule(
-            @Validated @RequestBody AppointmentRequestDto request,
+    @Operation(summary = "NOT YET IMPLEMENTED. Change available time and search for appointments")
+    public void changeSchedule(
+            @Validated @RequestBody AvailableTimeCreateDto request,
             Principal principal
     ) {
         log.info("PUT /appointment/available-time/change from user {} with body: {}", principal.getName(), request);
-        return Collections.emptyList();
     }
 }

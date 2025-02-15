@@ -13,7 +13,6 @@ public record PersonDto(
         String fullName,
         Integer age,
         String gender,
-        LocationDto currentPosition,
         List<ClubDto> clubs
 ) {
 }

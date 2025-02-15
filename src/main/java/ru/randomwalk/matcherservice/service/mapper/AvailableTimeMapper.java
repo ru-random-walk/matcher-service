@@ -1,16 +1,16 @@
 package ru.randomwalk.matcherservice.service.mapper;
 
+import org.locationtech.jts.geom.Point;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 import org.mapstruct.control.DeepClone;
-import ru.randomwalk.matcherservice.model.dto.request.AvailableTimeRequestDto;
+import ru.randomwalk.matcherservice.model.dto.AvailableTimeCreateDto;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
-import ru.randomwalk.matcherservice.model.entity.DayLimit;
+import ru.randomwalk.matcherservice.service.util.GeometryUtil;
 
-import java.time.LocalDate;
-import java.util.List;
+import java.time.OffsetTime;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
 public interface AvailableTimeMapper {
@@ -19,32 +19,21 @@ public interface AvailableTimeMapper {
     @Mapping(target = "id", ignore = true)
     AvailableTime clone(AvailableTime entityToClone);
 
-    default List<AvailableTime> fromRequests(List<AvailableTimeRequestDto> dtos, UUID personId) {
-        return dtos.stream()
-                .flatMap(dto -> getEntitiesFromRequest(dto, personId).stream())
-                .collect(Collectors.toList());
+
+    @Mapping(target = "personId", source = "personId")
+    @Mapping(target = "timezone", source = "createDto.timeFrom", qualifiedByName = "getTimeZone")
+    @Mapping(target = "location", source = "createDto", qualifiedByName = "getLocation")
+    @Mapping(target = "clubsInFilter", expression = "java(new java.util.HashSet(createDto.clubsInFilter()))")
+    AvailableTime fromCreationDto(AvailableTimeCreateDto createDto, UUID personId);
+
+    @Named("getTimeZone")
+    default String getTimeZone(OffsetTime offsetTime) {
+        return offsetTime.getOffset().getId();
     }
 
-    default List<AvailableTime> getEntitiesFromRequest(AvailableTimeRequestDto dto, UUID personId) {
-        return dto.timeFrames().stream()
-                .map(timeFrame -> AvailableTime.builder()
-                        .timezone(timeFrame.timeFrom().getOffset().getId())
-                        .personId(personId)
-                        .date(dto.date())
-                        .timeFrom(timeFrame.timeFrom())
-                        .timeUntil(timeFrame.timeUntil())
-                        .dayLimit(buildDayLimit(personId, dto.date(), dto.walkCount()))
-                        .build()
-                ).collect(Collectors.toList());
+    @Named("getLocation")
+    default Point getLocation(AvailableTimeCreateDto createDto) {
+        return GeometryUtil.createPoint(createDto.longitude(), createDto.latitude());
     }
-
-
-    default DayLimit buildDayLimit(UUID personId, LocalDate date, Integer walkCount) {
-        return DayLimit.builder()
-                .walkCount(walkCount)
-                .dayLimitId(new DayLimit.DayLimitId(personId, date))
-                .build();
-    }
-
 
 }
