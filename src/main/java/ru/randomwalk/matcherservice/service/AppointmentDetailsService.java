@@ -2,7 +2,6 @@ package ru.randomwalk.matcherservice.service;
 
 import org.locationtech.jts.geom.Point;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
-import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.model.entity.projection.AppointmentPartner;
 
 import java.time.OffsetDateTime;
@@ -18,5 +17,5 @@ public interface AppointmentDetailsService {
 
     AppointmentDetails getById(UUID appointmentId);
 
-    void deleteById(UUID appointmentId);
+    void cancelAppointmentByPerson(UUID appointmentId, UUID initiatorId);
 }

@@ -3,9 +3,10 @@ package ru.randomwalk.matcherservice.service.facade.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.randomwalk.matcherservice.model.dto.AvailableTimeCreateDto;
+import ru.randomwalk.matcherservice.model.dto.AvailableTimeModifyDto;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.Person;
+import ru.randomwalk.matcherservice.model.exception.MatcherNotFoundException;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
 import ru.randomwalk.matcherservice.service.PersonService;
 import ru.randomwalk.matcherservice.service.facade.AvailableTimeFacade;
@@ -26,12 +27,35 @@ public class AvailableTimeFacadeImpl implements AvailableTimeFacade {
     private final PersonService personService;
 
     @Override
-    public void addAvailableTime(AvailableTimeCreateDto dto, Principal principal) {
+    public void addAvailableTime(AvailableTimeModifyDto dto, Principal principal) {
         UUID personId = UUID.fromString(principal.getName());
-        Person person = personService.findByIdWithFetchedAvailableTime(personId);
+        Person person = personService.findById(personId);
         appointmentValidator.validateCreateRequest(dto, person);
-        AvailableTime newAvailableTime = availableTimeMapper.fromCreationDto(dto, personId);
+        AvailableTime newAvailableTime = availableTimeMapper.fromModifyDto(dto, personId);
 
         availableTimeService.addAvailableTime(newAvailableTime, personId);
+    }
+
+    @Override
+    public void changeExistingAvailableTime(UUID id, AvailableTimeModifyDto dto, Principal principal) {
+        UUID personId = UUID.fromString(principal.getName());
+        Person person = personService.findById(personId);
+        AvailableTime availableTimeToChange = availableTimeService.getById(id);
+        appointmentValidator.validateChangeRequest(dto, person, availableTimeToChange);
+
+        availableTimeService.replaceExistingAvailableTime(id, dto);
+    }
+
+    @Override
+    public void deleteAvailableTime(UUID id, Principal principal) {
+        UUID personId = UUID.fromString(principal.getName());
+        Person person = personService.findById(personId);
+
+        AvailableTime availableTimeToDelete = person.getAvailableTimes().stream()
+                .filter(time -> time.getId().equals(id))
+                .findAny()
+                .orElseThrow(() -> new MatcherNotFoundException("Available time with id %s is not found", id));
+
+        availableTimeService.deleteAvailableTime(availableTimeToDelete);
     }
 }

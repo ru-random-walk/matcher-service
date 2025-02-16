@@ -6,6 +6,7 @@ public class MatcherForbiddenException extends TemplateRuntimeException{
     }
 
     public MatcherForbiddenException() {
+        super("Access is forbidden");
     }
 
     public MatcherForbiddenException(String message) {

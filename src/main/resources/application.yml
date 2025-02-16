@@ -38,5 +38,4 @@ spring:
 
 matcher:
   min-walk-time-in-seconds: 3600
-  offset-between-walks-in-seconds: 900
   appointment-manager-delay-seconds: 60

@@ -4,15 +4,18 @@ import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import ru.randomwalk.matcherservice.model.dto.AvailableTimeCreateDto;
+import ru.randomwalk.matcherservice.model.dto.AvailableTimeModifyDto;
 import ru.randomwalk.matcherservice.service.facade.AvailableTimeFacade;
 
 import java.security.Principal;
+import java.util.UUID;
 
 @RestController
 @Slf4j
@@ -25,19 +28,31 @@ public class AvailableTimeController {
     @PostMapping("/add")
     @Operation(summary = "Add available time to schedule and search for appointments")
     public void addAvailableTime(
-            @Validated @RequestBody AvailableTimeCreateDto request,
+            @Validated @RequestBody AvailableTimeModifyDto request,
             Principal principal
     ) {
-        log.info("POST /appointment/add request from {} with body: {}", principal.getName(), request);
+        log.info("POST /available-time/add request from {} with body: {}", principal.getName(), request);
         availableTimeFacade.addAvailableTime(request, principal);
     }
 
-    @PutMapping("/change")
-    @Operation(summary = "NOT YET IMPLEMENTED. Change available time and search for appointments")
+    @PutMapping("/{id}/change")
+    @Operation(summary = "Change available time and search for appointments")
     public void changeSchedule(
-            @Validated @RequestBody AvailableTimeCreateDto request,
+            @PathVariable UUID id,
+            @Validated @RequestBody AvailableTimeModifyDto request,
             Principal principal
     ) {
-        log.info("PUT /appointment/available-time/change from user {} with body: {}", principal.getName(), request);
+        log.info("PUT /available-time/{}/change from user {} with body: {}", id, principal.getName(), request);
+        availableTimeFacade.changeExistingAvailableTime(id, request, principal);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete available time by id")
+    public void deleteAvailableTime(
+            @PathVariable UUID id,
+            Principal principal
+    ) {
+        log.info("DELETE /available-time/{} request from user {}", id, principal.getName());
+        availableTimeFacade.deleteAvailableTime(id, principal);
     }
 }

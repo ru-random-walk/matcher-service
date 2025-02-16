@@ -3,20 +3,19 @@ package ru.randomwalk.matcherservice.service.validation;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
-import ru.randomwalk.matcherservice.model.dto.AvailableTimeCreateDto;
+import ru.randomwalk.matcherservice.model.dto.AvailableTimeModifyDto;
 import ru.randomwalk.matcherservice.model.dto.TimePeriod;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.Club;
-import ru.randomwalk.matcherservice.model.entity.DayLimit;
 import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.model.exception.MatcherBadRequestException;
-import ru.randomwalk.matcherservice.repository.DayLimitRepository;
+import ru.randomwalk.matcherservice.model.exception.MatcherForbiddenException;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.temporal.ChronoUnit;
@@ -38,18 +37,26 @@ import static ru.randomwalk.matcherservice.service.util.TimeUtil.isAfterOrEqual;
 public class AppointmentValidator {
 
     private final MatcherProperties matcherProperties;
-    private final DayLimitRepository dayLimitRepository;
 
-    public void validateCreateRequest(AvailableTimeCreateDto requestDto, Person person) {
+    public void validateCreateRequest(AvailableTimeModifyDto requestDto, Person person) {
         checkThatTimeZoneIsTheSame(requestDto);
         checkThatTimeFramesAreCorrect(requestDto);
         checkThatClubsInFilterAreCorrect(requestDto.clubsInFilter(), person);
-        checkThatDayLimitIsNotExceeded(person.getId(), requestDto.date());
         checkThatDoesNotConflictWithExistingAvailableTimes(requestDto, person.getAvailableTimes());
         checkThatDoesNotConflictWithActiveAppointments(requestDto, person.getAppointments());
     }
 
-    private void checkThatTimeZoneIsTheSame(AvailableTimeCreateDto dto) {
+    public void validateChangeRequest(AvailableTimeModifyDto requestDto, Person person, AvailableTime availableTimeToChange) {
+        checkThatAvailableTimeIsAttachedToUser(availableTimeToChange, person);
+        checkDateDoesNotChange(requestDto, availableTimeToChange);
+        checkThatTimeZoneIsTheSame(requestDto);
+        checkThatTimeFramesAreCorrect(requestDto);
+        checkThatClubsInFilterAreCorrect(requestDto.clubsInFilter(), person);
+        checkThatDoesNotConflictWithActiveAppointments(requestDto, person.getAppointments());
+        checkThatDoesNotConflictWithExistingAvailableTimes(requestDto, getAvailableTimesWithoutSpecified(person, availableTimeToChange));
+    }
+
+    private void checkThatTimeZoneIsTheSame(AvailableTimeModifyDto dto) {
         boolean offsetIsSame = Objects.equals(dto.timeFrom().getOffset(), dto.timeUntil().getOffset());
 
         if (!offsetIsSame) {
@@ -57,7 +64,7 @@ public class AppointmentValidator {
         }
     }
 
-    private void checkThatTimeFramesAreCorrect(AvailableTimeCreateDto createDto) {
+    private void checkThatTimeFramesAreCorrect(AvailableTimeModifyDto createDto) {
         if (isImpossibleTimeFrame(createDto.timeFrom(), createDto.timeUntil())) {
             throw new MatcherBadRequestException(
                     "Impossible time frame [%s; %s]",
@@ -80,16 +87,7 @@ public class AppointmentValidator {
                 });
     }
 
-    private void checkThatDayLimitIsNotExceeded(UUID personId, LocalDate date) {
-        dayLimitRepository.findById(new DayLimit.DayLimitId(personId, date))
-                .ifPresent(dayLimit -> {
-                    if (dayLimit.getWalkCount() == 0) {
-                        throw new MatcherBadRequestException("Day limit for {} is exceeded", date);
-                    }
-                });
-    }
-
-    private void checkThatDoesNotConflictWithActiveAppointments(AvailableTimeCreateDto dto, List<AppointmentDetails> appointmentDetails) {
+    private void checkThatDoesNotConflictWithActiveAppointments(AvailableTimeModifyDto dto, List<AppointmentDetails> appointmentDetails) {
         Map<LocalDate, List<OffsetDateTime>> activeAppointmentTime = appointmentDetails.stream()
                 .filter(detail -> detail.getStatus().isActive())
                 .map(AppointmentDetails::getStartsAt)
@@ -113,7 +111,7 @@ public class AppointmentValidator {
         }
     }
 
-    private void checkThatDoesNotConflictWithExistingAvailableTimes(AvailableTimeCreateDto dto, List<AvailableTime> availableTimes) {
+    private void checkThatDoesNotConflictWithExistingAvailableTimes(AvailableTimeModifyDto dto, List<AvailableTime> availableTimes) {
         var dateToAvailableTimeMap = getDateToAvailableTimeMap(availableTimes);
         List<AvailableTime> existingAvailableTimes = dateToAvailableTimeMap.get(dto.date());
         if (existingAvailableTimes == null || existingAvailableTimes.isEmpty()) {
@@ -135,9 +133,16 @@ public class AppointmentValidator {
         }
     }
 
-    private Integer calculateMaximumDayLimit(OffsetTime timeFrom, OffsetTime timeUntil) {
-        long duration = ChronoUnit.SECONDS.between(timeFrom, timeUntil);
-        return (int) duration / matcherProperties.getMinWalkTimeInSeconds();
+    private void checkThatAvailableTimeIsAttachedToUser(AvailableTime availableTime, Person person) {
+        if (!Objects.equals(availableTime.getPersonId(), person.getId())) {
+            throw new MatcherForbiddenException();
+        }
+    }
+
+    private void checkDateDoesNotChange(AvailableTimeModifyDto modifyDto, AvailableTime availableTime) {
+        if (!Objects.equals(availableTime.getDate(), modifyDto.date())) {
+            throw new MatcherBadRequestException("Date cannot be changed");
+        }
     }
 
     private Map<LocalDate, List<AvailableTime>> getDateToAvailableTimeMap(List<AvailableTime> availableTimes) {
@@ -170,6 +175,13 @@ public class AppointmentValidator {
     private boolean isImpossibleTimeFrame(OffsetTime timeFrom, OffsetTime timeUntil) {
         return isAfterOrEqual(timeFrom, timeUntil)
                 || ChronoUnit.SECONDS.between(timeFrom, timeUntil) < matcherProperties.getMinWalkTimeInSeconds();
+    }
+
+    private List<AvailableTime> getAvailableTimesWithoutSpecified(Person person, AvailableTime timeToRemove) {
+        List<AvailableTime> availableTimes = new ArrayList<>(person.getAvailableTimes());
+        availableTimes.remove(timeToRemove);
+
+        return availableTimes;
     }
 
 }

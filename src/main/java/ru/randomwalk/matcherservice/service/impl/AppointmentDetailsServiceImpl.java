@@ -12,8 +12,10 @@ import ru.randomwalk.matcherservice.model.entity.projection.AppointmentPartner;
 import ru.randomwalk.matcherservice.model.exception.MatcherNotFoundException;
 import ru.randomwalk.matcherservice.repository.AppointmentDetailsRepository;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
+import ru.randomwalk.matcherservice.service.DayLimitService;
 import ru.randomwalk.matcherservice.service.PersonService;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class AppointmentDetailsServiceImpl implements AppointmentDetailsService {
 
     private final AppointmentDetailsRepository appointmentDetailsRepository;
+    private final DayLimitService dayLimitService;
     private final PersonService personService;
 
     @Override
@@ -61,10 +64,23 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
                 .orElseThrow(() -> new MatcherNotFoundException("Appointment with id %s does not exist", appointmentId));
     }
 
-    @Override
     @Transactional
-    public void deleteById(UUID appointmentId) {
-        appointmentDetailsRepository.deleteById(appointmentId);
+    @Override
+    public void cancelAppointmentByPerson(UUID appointmentId, UUID initiatorId) {
+        AppointmentDetails appointment = getById(appointmentId);
+        restoreDayLimitForPartner(appointment, initiatorId);
+        appointmentDetailsRepository.delete(appointment);
+    }
+
+    private void restoreDayLimitForPartner(AppointmentDetails appointmentDetails, UUID initiatorId) {
+        getAppointmentParticipants(appointmentDetails.getId()).stream()
+                .filter(id -> !id.equals(initiatorId))
+                .findFirst()
+                .ifPresent(partnerId -> {
+                    LocalDate date = appointmentDetails.getStartDate();
+                    log.info("Restoring day limit for person {} at {}", partnerId, date);
+                    dayLimitService.incrementDayLimitForPersonAndDate(partnerId, date);
+                });
     }
 
     private void linkMembersToAppointment(AppointmentDetails appointmentDetails, UUID... membersIds) {

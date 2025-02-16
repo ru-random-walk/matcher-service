@@ -29,7 +29,7 @@ public class AppointmentController {
             Principal principal
     ) {
         log.info("DELETE /appointment/{}/cancel from user {}", appointmentId, principal.getName());
-        appointmentFacade.deleteAppointment(appointmentId, principal.getName());
+        appointmentFacade.cancelAppointment(appointmentId, principal.getName());
     }
 
     @GetMapping("/{appointmentId}")

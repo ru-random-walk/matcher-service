@@ -3,10 +3,10 @@ package ru.randomwalk.matcherservice.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import org.hibernate.Hibernate;
 import org.quartz.JobBuilder;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
+import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
@@ -15,6 +15,7 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
+import ru.randomwalk.matcherservice.model.dto.AvailableTimeModifyDto;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.Club;
 import ru.randomwalk.matcherservice.model.entity.DayLimit;
@@ -60,6 +61,7 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
     private final Scheduler scheduler;
 
     @Override
+    @Transactional
     public void addAvailableTime(AvailableTime availableTimeToCreate, UUID personId) {
         linkDayLimitToAvailableTime(availableTimeToCreate);
         var createdAvailableTime = availableTimeRepository.saveAndFlush(availableTimeToCreate);
@@ -102,27 +104,6 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
     }
 
     @Override
-    public void decrementDayLimit(AvailableTime availableTime) {
-        DayLimit dayLimit;
-        if (Hibernate.isInitialized(availableTime.getDayLimit())) {
-            dayLimit = availableTime.getDayLimit();
-        } else {
-            dayLimit = findExistingDayLimitWithLock(availableTime);
-        }
-        dayLimit.decrementWalkCount();
-        dayLimitRepository.save(dayLimit);
-    }
-
-    @Override
-    public int getCurrentWalkCountWithLock(AvailableTime availableTime) {
-        if (Hibernate.isInitialized(availableTime.getDayLimit())) {
-            return availableTime.getDayLimit().getWalkCount();
-        } else {
-            return findExistingDayLimitWithLock(availableTime).getWalkCount();
-        }
-    }
-
-    @Override
     public AvailableTime getById(UUID id) {
         return availableTimeRepository.findById(id)
                 .orElseThrow(() -> new MatcherNotFoundException("Available time with id=%s does not exist", id));
@@ -148,6 +129,24 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
                 .sorted(Comparator.comparingInt(Pair::getRight))
                 .map(Pair::getLeft)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void replaceExistingAvailableTime(UUID id, AvailableTimeModifyDto modifyDto) {
+        var availableTime = getById(id);
+        availableTime = availableTimeMapper.replaceAvailableTime(availableTime, modifyDto);
+        availableTimeRepository.save(availableTime);
+
+        log.info("AvailableTime {} has been changed", availableTime.getId());
+
+        scheduleAppointmentManagementJob(availableTime);
+    }
+
+    @Override
+    public void deleteAvailableTime(AvailableTime availableTime) {
+        availableTimeRepository.delete(availableTime);
+        deleteAppointmentManagementJobIfExists(availableTime);
     }
 
     private Map<UUID, Person> getPersonByAvailableTimeMap(List<AvailableTime> availableTimes) {
@@ -178,12 +177,6 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
         }
 
         return true;
-    }
-
-    private DayLimit findExistingDayLimitWithLock(AvailableTime availableTime) {
-        return dayLimitRepository
-                .findByIdWithLock(new DayLimit.DayLimitId(availableTime.getPersonId(), availableTime.getDate()))
-                .orElseThrow(() -> new MatcherNotFoundException("DayLimit does not exist"));
     }
 
     private void linkDayLimitToAvailableTime(AvailableTime availableTime) {
@@ -218,6 +211,19 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
             log.info("Job {} is scheduled", jobDetail.getKey());
         } catch (SchedulerException e) {
             log.error("Error scheduling job {}", jobDetail.getKey(), e);
+        }
+    }
+
+    private void deleteAppointmentManagementJobIfExists(AvailableTime availableTime) {
+        JobKey jobKey = JobKey.jobKey(getJobName(availableTime));
+        try {
+            log.info("Trying to delete job {}", jobKey);
+            if (scheduler.checkExists(jobKey)) {
+                scheduler.deleteJob(jobKey);
+                log.info("Job {} was deleted", jobKey);
+            }
+        } catch (SchedulerException e) {
+            log.error("Quartz exception on job {} deletion", jobKey, e);
         }
     }
 

@@ -7,7 +7,6 @@ import ru.randomwalk.matcherservice.model.dto.AppointmentDetailsDto;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.exception.MatcherForbiddenException;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
-import ru.randomwalk.matcherservice.service.PersonService;
 import ru.randomwalk.matcherservice.service.facade.AppointmentFacade;
 import ru.randomwalk.matcherservice.service.mapper.AppointmentMapper;
 
@@ -36,15 +35,15 @@ public class AppointmentFacadeImpl implements AppointmentFacade {
     }
 
     @Override
-    public void deleteAppointment(UUID appointmentId, String userName) {
+    public void cancelAppointment(UUID appointmentId, String userName) {
         UUID personId = UUID.fromString(userName);
         List<UUID> appointmentParticipantIds = appointmentDetailsService.getAppointmentParticipants(appointmentId);
 
         if (!appointmentParticipantIds.contains(personId)) {
-            throw new MatcherForbiddenException("Access is forbidden");
+            throw new MatcherForbiddenException();
         }
 
-        appointmentDetailsService.deleteById(appointmentId);
+        appointmentDetailsService.cancelAppointmentByPerson(appointmentId, personId);
     }
 
 }
