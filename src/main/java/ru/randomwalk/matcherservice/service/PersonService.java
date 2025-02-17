@@ -30,4 +30,6 @@ public interface PersonService {
 
     int getClubsSimilarityBetweenPeople(Person first, Person second);
 
+    List<Person> findAllWithFetchedAppointments(List<UUID> ids);
+
 }

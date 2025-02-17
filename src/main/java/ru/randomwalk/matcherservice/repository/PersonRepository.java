@@ -28,4 +28,7 @@ public interface PersonRepository extends JpaRepository<Person, UUID> {
 
     @Query("select p from Person as p left join fetch p.clubs where p.id in :ids")
     List<Person> findAllWithFetchedClubs(@Param("ids") Collection<UUID> ids);
+
+    @Query("select p from Person p left join fetch p.appointments where p.id in :ids")
+    List<Person> findAllByIdsWithFetchedAppointments(List<UUID> ids);
 }

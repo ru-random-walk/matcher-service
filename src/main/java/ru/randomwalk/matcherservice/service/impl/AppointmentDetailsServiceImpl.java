@@ -68,11 +68,13 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
     @Override
     public void cancelAppointmentByPerson(UUID appointmentId, UUID initiatorId) {
         AppointmentDetails appointment = getById(appointmentId);
-        restoreDayLimitForPartner(appointment, initiatorId);
+        List<UUID> participantsIds = getAppointmentParticipants(appointmentId);
+        restoreDayLimitForPartner(appointment, initiatorId, participantsIds);
+        unlinkAppointmentFromUsers(appointment, participantsIds);
         appointmentDetailsRepository.delete(appointment);
     }
 
-    private void restoreDayLimitForPartner(AppointmentDetails appointmentDetails, UUID initiatorId) {
+    private void restoreDayLimitForPartner(AppointmentDetails appointmentDetails, UUID initiatorId, List<UUID> participants) {
         getAppointmentParticipants(appointmentDetails.getId()).stream()
                 .filter(id -> !id.equals(initiatorId))
                 .findFirst()
@@ -81,6 +83,12 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
                     log.info("Restoring day limit for person {} at {}", partnerId, date);
                     dayLimitService.incrementDayLimitForPersonAndDate(partnerId, date);
                 });
+    }
+
+    private void unlinkAppointmentFromUsers(AppointmentDetails appointment, List<UUID> participantIds) {
+        List<Person> participants = personService.findAllWithFetchedAppointments(participantIds);
+        participants.forEach(participant -> participant.getAppointments().remove(appointment));
+        personService.saveAll(participants);
     }
 
     private void linkMembersToAppointment(AppointmentDetails appointmentDetails, UUID... membersIds) {
