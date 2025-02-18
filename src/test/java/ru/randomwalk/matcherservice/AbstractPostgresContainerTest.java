@@ -17,7 +17,7 @@ public abstract class AbstractPostgresContainerTest {
 
     static {
         DATABASE_CONTAINER = new PostgreSQLContainer<>(
-                DockerImageName.parse("postgis/postgis:12-3.0")
+                DockerImageName.parse("postgis/postgis:16-3.5")
                         .asCompatibleSubstituteFor("postgres")
         )
                 .withDatabaseName("random_walk_postgres")
