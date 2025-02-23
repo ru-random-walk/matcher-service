@@ -17,6 +17,5 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "matcher")
 public class MatcherProperties {
     private Integer minWalkTimeInSeconds;
-    private Integer offsetBetweenWalksInSeconds;
     private Integer appointmentManagerDelaySeconds;
 }

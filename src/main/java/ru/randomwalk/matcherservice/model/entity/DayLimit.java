@@ -11,12 +11,14 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import ru.randomwalk.matcherservice.service.util.MatcherConstants;
 
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.UUID;
 
 import static ru.randomwalk.matcherservice.service.util.MatcherConstants.DEFAULT_WALK_COUNT;
+import static ru.randomwalk.matcherservice.service.util.MatcherConstants.MAX_WALK_COUNT_FOR_DAY;
 
 @Getter
 @Setter
@@ -48,6 +50,12 @@ public class DayLimit {
     public void decrementWalkCount() {
         if (this.walkCount > 0) {
             this.walkCount--;
+        }
+    }
+
+    public void incrementWalkCount() {
+        if (this.walkCount < MAX_WALK_COUNT_FOR_DAY) {
+            this.walkCount++;
         }
     }
 }

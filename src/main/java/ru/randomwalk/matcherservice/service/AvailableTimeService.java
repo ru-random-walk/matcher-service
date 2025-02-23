@@ -1,5 +1,6 @@
 package ru.randomwalk.matcherservice.service;
 
+import ru.randomwalk.matcherservice.model.dto.AvailableTimeModifyDto;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 
 import java.time.OffsetTime;
@@ -11,12 +12,11 @@ public interface AvailableTimeService {
 
      List<AvailableTime> splitAvailableTime(AvailableTime availableTime, OffsetTime splitFrom, OffsetTime splitUntil);
 
-     void decrementDayLimit(AvailableTime availableTime);
-
-     int getCurrentWalkCountWithLock(AvailableTime availableTime);
-
      AvailableTime getById(UUID id);
 
      List<AvailableTime> findMatchesForAvailableTime(AvailableTime availableTimeToFindMatches);
 
+     void replaceExistingAvailableTime(UUID id, AvailableTimeModifyDto modifyDto);
+
+     void deleteAvailableTime(AvailableTime availableTime);
 }

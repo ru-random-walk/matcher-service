@@ -89,4 +89,9 @@ public class PersonServiceImpl implements PersonService {
                 .count();
     }
 
+    @Override
+    public List<Person> findAllWithFetchedAppointments(List<UUID> ids) {
+        return personRepository.findAllByIdsWithFetchedAppointments(ids);
+    }
+
 }

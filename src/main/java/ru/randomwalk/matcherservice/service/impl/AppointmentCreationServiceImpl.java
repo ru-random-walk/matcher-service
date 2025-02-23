@@ -6,11 +6,11 @@ import org.locationtech.jts.geom.Point;
 import org.springframework.stereotype.Service;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.dto.AppointmentCreationResultDto;
-import ru.randomwalk.matcherservice.model.dto.TimePeriod;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.service.AppointmentCreationService;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
+import ru.randomwalk.matcherservice.service.DayLimitService;
 import ru.randomwalk.matcherservice.service.util.GeometryUtil;
 
 import java.time.LocalDate;
@@ -29,6 +29,7 @@ public class AppointmentCreationServiceImpl implements AppointmentCreationServic
     private final AvailableTimeService availableTimeService;
     private final AppointmentDetailsService appointmentDetailsService;
     private final MatcherProperties matcherProperties;
+    private final DayLimitService dayLimitService;
 
     @Override
     public AppointmentCreationResultDto createAppointmentForAvailableTime(
@@ -45,8 +46,8 @@ public class AppointmentCreationServiceImpl implements AppointmentCreationServic
 
         OffsetTime walkEndTime = calculateWalkEndTime(startTime);
 
-        availableTimeService.decrementDayLimit(availableTime);
-        availableTimeService.decrementDayLimit(matchingTime);
+        dayLimitService.decrementDayLimitForAvailableTime(availableTime);
+        dayLimitService.decrementDayLimitForAvailableTime(matchingTime);
 
         OffsetDateTime startDateTime = getAppointmentStartDate(availableTime, startTime);
         Point appointmentLocation = getApproximateAppointmentLocation(availableTime, matchingTime);
@@ -67,8 +68,7 @@ public class AppointmentCreationServiceImpl implements AppointmentCreationServic
 
     private OffsetTime calculateWalkEndTime(OffsetTime beginTime) {
         return beginTime
-                .plusSeconds(matcherProperties.getMinWalkTimeInSeconds())
-                .plusSeconds(matcherProperties.getOffsetBetweenWalksInSeconds());
+                .plusSeconds(matcherProperties.getMinWalkTimeInSeconds());
     }
 
     private OffsetDateTime getAppointmentStartDate(AvailableTime availableTime, OffsetTime startTime) {

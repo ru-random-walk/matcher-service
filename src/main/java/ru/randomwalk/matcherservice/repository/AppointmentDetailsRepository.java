@@ -18,7 +18,7 @@ public interface AppointmentDetailsRepository extends JpaRepository<AppointmentD
     List<AppointmentPartner> getAllPartnerIdsForAppointmentsOfPerson(@Param("personId") UUID personId, @Param("appointmentIds") List<UUID> appointmentIds);
 
     @Query(value = """
-        select person_id from appointment where id = :appointmentId
+        select person_id from appointment where appointment_id = :appointmentId
         """, nativeQuery = true)
     List<UUID> getAppointmentPartnerIds(UUID appointmentId);
 }

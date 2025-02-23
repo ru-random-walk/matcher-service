@@ -16,6 +16,7 @@ import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.service.AppointmentCreationService;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
+import ru.randomwalk.matcherservice.service.DayLimitService;
 import ru.randomwalk.matcherservice.service.util.TimeUtil;
 
 import java.time.temporal.ChronoUnit;
@@ -37,6 +38,7 @@ public class AppointmentManagementJob implements Job {
     public static final String TRACE_ID_JOB_KEY = "traceId";
 
     private final AvailableTimeService availableTimeService;
+    private final DayLimitService dayLimitService;
     private final MatcherProperties matcherProperties;
     private final AppointmentCreationService appointmentCreationService;
 
@@ -114,7 +116,7 @@ public class AppointmentManagementJob implements Job {
     }
 
     private boolean canOrganizeWalk(AvailableTime availableTime) {
-        boolean dayLimitIsNotExceeded = availableTimeService.getCurrentWalkCountWithLock(availableTime) > 0;
+        boolean dayLimitIsNotExceeded = dayLimitService.getCurrentWalkCountForAvailableTime(availableTime) > 0;
         boolean hasTime = ChronoUnit.SECONDS.between(availableTime.getTimeFrom(), availableTime.getTimeUntil()) >= matcherProperties.getMinWalkTimeInSeconds();
 
         return hasTime && dayLimitIsNotExceeded;

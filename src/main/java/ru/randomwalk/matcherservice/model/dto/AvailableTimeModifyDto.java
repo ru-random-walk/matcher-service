@@ -2,7 +2,6 @@ package ru.randomwalk.matcherservice.model.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
-import lombok.Builder;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
@@ -12,7 +11,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-public record AvailableTimeCreateDto(
+public record AvailableTimeModifyDto(
         @NotNull
         LocalDate date,
         @NotNull
@@ -29,7 +28,7 @@ public record AvailableTimeCreateDto(
         Double latitude,
         List<UUID> clubsInFilter
 ) {
-        public AvailableTimeCreateDto(
+        public AvailableTimeModifyDto(
                 LocalDate date,
                 OffsetTime timeFrom, @NotNull
                 OffsetTime timeUntil,
