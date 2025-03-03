@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import ru.random.walk.dto.RegisteredUserInfoEvent;
-import ru.random.walk.kafka.EventTopic;
+import ru.random.walk.topic.EventTopic;
 import ru.randomwalk.matcherservice.service.PersonService;
 
 @Slf4j
