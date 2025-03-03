@@ -22,7 +22,6 @@ import java.util.UUID;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 @IdClass(Club.PersonClubId.class)
 @Table(name = "PERSON_CLUB")
 public class Club {

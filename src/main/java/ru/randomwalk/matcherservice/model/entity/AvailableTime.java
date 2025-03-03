@@ -37,7 +37,6 @@ import static ru.randomwalk.matcherservice.service.util.MatcherConstants.DEFAULT
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 @Entity
 @ToString
 @Table(name = "AVAILABLE_TIME")
