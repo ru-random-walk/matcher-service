@@ -24,7 +24,6 @@ import static ru.randomwalk.matcherservice.service.util.MatcherConstants.MAX_WAL
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "DAY_LIMIT")
 public class DayLimit {
