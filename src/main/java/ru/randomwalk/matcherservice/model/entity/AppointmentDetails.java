@@ -17,7 +17,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.locationtech.jts.geom.Point;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 import ru.randomwalk.matcherservice.service.util.GeometryUtil;
@@ -30,7 +32,6 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "APPOINTMENT_DETAILS")
 public class AppointmentDetails {
@@ -54,6 +55,7 @@ public class AppointmentDetails {
 
     @Column(name = "STATUS")
     @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     private AppointmentStatus status;
 
     @Column(name = "APPROXIMATE_LOCATION")

@@ -26,7 +26,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @Getter
 @Setter
-@Builder
 @Entity
 @Table(name = "PERSON")
 public class Person {
@@ -57,4 +56,5 @@ public class Person {
             inverseJoinColumns = {@JoinColumn(name = "APPOINTMENT_ID")}
     )
     private List<AppointmentDetails> appointments = new ArrayList<>();
+
 }
