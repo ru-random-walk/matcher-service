@@ -15,7 +15,6 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.support.serializer.JsonSerializer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,9 +24,8 @@ import java.util.Map;
 public class KafkaConfig {
 
     @Bean
-    public ProducerFactory<String, Object> producerFactory(KafkaProperties kafkaProperties) {
+    public ProducerFactory<String, String> producerFactory(KafkaProperties kafkaProperties) {
         Map<String, Object> configProperties = new HashMap<>();
-        JsonSerializer jsonSerializer = new JsonSerializer().noTypeInfo();
         configProperties.put(
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
                 kafkaProperties.getBootstrapServers()
@@ -38,13 +36,13 @@ public class KafkaConfig {
         );
         configProperties.put(
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                jsonSerializer
+                StringSerializer.class
         );
-        return new DefaultKafkaProducerFactory<>(configProperties, new StringSerializer(), jsonSerializer);
+        return new DefaultKafkaProducerFactory<>(configProperties, new StringSerializer(), new StringSerializer());
     }
 
     @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate(KafkaProperties kafkaProperties) {
+    public KafkaTemplate<String, String> kafkaTemplate(KafkaProperties kafkaProperties) {
         return new KafkaTemplate<>(producerFactory(kafkaProperties));
     }
 

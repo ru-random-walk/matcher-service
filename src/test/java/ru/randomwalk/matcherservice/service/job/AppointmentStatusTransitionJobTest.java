@@ -18,7 +18,7 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import ru.random.walk.dto.RegisteredUserInfoEvent;
-import ru.randomwalk.matcherservice.AbstractPostgresContainerTest;
+import ru.randomwalk.matcherservice.AbstractContainerTest;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
@@ -41,7 +41,7 @@ import static ru.randomwalk.matcherservice.model.enam.AppointmentStatus.IN_PROGR
 @SpringBootTest
 @ActiveProfiles("local")
 @ExtendWith(MockitoExtension.class)
-class AppointmentStatusTransitionJobTest extends AbstractPostgresContainerTest {
+class AppointmentStatusTransitionJobTest extends AbstractContainerTest {
 
 
     @Autowired

@@ -7,18 +7,19 @@ import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.slf4j.MDC;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.random.walk.dto.CreatePrivateChatEvent;
+import ru.random.walk.topic.EventTopic;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.dto.AppointmentCreationResultDto;
 import ru.randomwalk.matcherservice.model.dto.TimePeriod;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
-import ru.randomwalk.matcherservice.model.event.CreateChatsWithPartnersEvent;
 import ru.randomwalk.matcherservice.service.AppointmentCreationService;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
 import ru.randomwalk.matcherservice.service.DayLimitService;
+import ru.randomwalk.matcherservice.service.OutboxSenderService;
 import ru.randomwalk.matcherservice.service.util.TimeUtil;
 
 import java.time.temporal.ChronoUnit;
@@ -43,7 +44,7 @@ public class AppointmentManagementJob implements Job {
     private final DayLimitService dayLimitService;
     private final MatcherProperties matcherProperties;
     private final AppointmentCreationService appointmentCreationService;
-    private final ApplicationEventPublisher eventPublisher;
+    private final OutboxSenderService outboxSenderService;
 
     @Override
     @Transactional
@@ -65,7 +66,7 @@ public class AppointmentManagementJob implements Job {
         log.info("Found {} matching times for available time {}", matchingAvailableTimes.size(), availableTimeId);
 
         List<UUID> partnerIds = createAppointmentsAndGetPartnerIds(availableTimeToMatch, matchingAvailableTimes);
-        eventPublisher.publishEvent(new CreateChatsWithPartnersEvent(personId, partnerIds));
+        createChatsWithPartners(personId, partnerIds);
     }
 
     private List<UUID> createAppointmentsAndGetPartnerIds(AvailableTime initialAvailableTime, List<AvailableTime> matchingAvailableTimes) {
@@ -113,6 +114,13 @@ public class AppointmentManagementJob implements Job {
             );
         }
         return Optional.empty();
+    }
+
+    private void createChatsWithPartners(UUID personId, List<UUID> partners) {
+        for (var partnerId : partners) {
+            log.info("Creating chat between {} and {}", personId, partnerId);
+            outboxSenderService.sendMessage(EventTopic.CREATE_CHAT, new CreatePrivateChatEvent(personId, partnerId));
+        }
     }
 
     private TimePeriod getOverlap(AvailableTime first, AvailableTime second) {
