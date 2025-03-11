@@ -1,5 +1,7 @@
 package ru.randomwalk.matcherservice.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,12 +36,13 @@ class OutboxTest extends AbstractContainerTest {
     @Autowired
     private OutboxRepository outboxRepository;
 
-    private static final String CORRECT_PAYLOAD_FORMAT = "{\"chatMember1\":\"%s\",\"chatMember2\":\"%s\"}";
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     @Transactional
     @Rollback
-    void sendMessageSavesToDb() {
+    void sendMessageSavesToDb() throws JsonProcessingException {
         UUID personId = UUID.randomUUID();
         UUID partnerId = UUID.randomUUID();
         outboxSenderService.sendMessage(EventTopic.CREATE_CHAT, new CreatePrivateChatEvent(personId, partnerId));
@@ -47,15 +50,15 @@ class OutboxTest extends AbstractContainerTest {
 
         assertFalse(messages.isEmpty());
         assertEquals(EventTopic.CREATE_CHAT, messages.getLast().getTopic());
-        assertEquals(String.format(CORRECT_PAYLOAD_FORMAT, personId, partnerId), messages.getLast().getPayload());
+        assertEquals(getPayload(personId, partnerId), messages.getLast().getPayload());
         assertNotNull(messages.getLast().getCreatedAt());
     }
 
     @Test
     @Transactional
     @Rollback
-    void checkOutboxJobIsSendingMessages() throws InterruptedException {
-        String payload = String.format(CORRECT_PAYLOAD_FORMAT, UUID.randomUUID(), UUID.randomUUID());
+    void checkOutboxJobIsSendingMessages() throws JsonProcessingException {
+        String payload = getPayload(UUID.randomUUID(), UUID.randomUUID());
 
         OutboxMessage outboxMessage = new OutboxMessage();
         outboxMessage.setPayload(payload);
@@ -69,5 +72,9 @@ class OutboxTest extends AbstractContainerTest {
 
         var outboxResult = outboxRepository.findById(outboxMessage.getId()).get();
         assertTrue(outboxResult.isSent());
+    }
+
+    private String getPayload(UUID member1, UUID member2) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(new CreatePrivateChatEvent(member1, member2));
     }
 }
