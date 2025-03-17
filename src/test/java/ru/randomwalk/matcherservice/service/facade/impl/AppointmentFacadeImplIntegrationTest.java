@@ -7,8 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
-import ru.randomwalk.matcherservice.AbstractPostgresContainerTest;
-import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
+import ru.randomwalk.matcherservice.AbstractContainerTest;
 import ru.randomwalk.matcherservice.model.entity.DayLimit;
 import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.repository.AppointmentDetailsRepository;
@@ -26,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("local")
-class AppointmentFacadeImplIntegrationTest extends AbstractPostgresContainerTest {
+class AppointmentFacadeImplIntegrationTest extends AbstractContainerTest {
 
     @Autowired
     private PersonRepository personRepository;

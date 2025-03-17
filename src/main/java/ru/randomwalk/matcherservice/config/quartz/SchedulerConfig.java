@@ -1,6 +1,7 @@
 package ru.randomwalk.matcherservice.config.quartz;
 
 import lombok.RequiredArgsConstructor;
+import org.quartz.JobDetail;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
@@ -16,9 +17,12 @@ import java.util.List;
 public class SchedulerConfig {
 
     @Bean
-    public Scheduler scheduler(List<Trigger> triggers, SchedulerFactoryBean factory) throws SchedulerException {
+    public Scheduler scheduler(List<Trigger> triggers, List<JobDetail> jobDetails, SchedulerFactoryBean factory) throws SchedulerException {
         factory.setWaitForJobsToCompleteOnShutdown(true);
         factory.setTransactionManager(new JdbcTransactionManager());
+        factory.setJobDetails(jobDetails.toArray(new JobDetail[0]));
+        factory.setTriggers(triggers.toArray(new Trigger[0]));
+
         var scheduler = factory.getScheduler();
         rescheduleJobs(triggers, scheduler);
         scheduler.start();

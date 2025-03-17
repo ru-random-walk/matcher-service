@@ -9,6 +9,8 @@ import org.quartz.JobExecutionException;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.random.walk.dto.CreatePrivateChatEvent;
+import ru.random.walk.topic.EventTopic;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.dto.AppointmentCreationResultDto;
 import ru.randomwalk.matcherservice.model.dto.TimePeriod;
@@ -17,6 +19,7 @@ import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.service.AppointmentCreationService;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
 import ru.randomwalk.matcherservice.service.DayLimitService;
+import ru.randomwalk.matcherservice.service.OutboxSenderService;
 import ru.randomwalk.matcherservice.service.util.TimeUtil;
 
 import java.time.temporal.ChronoUnit;
@@ -41,6 +44,7 @@ public class AppointmentManagementJob implements Job {
     private final DayLimitService dayLimitService;
     private final MatcherProperties matcherProperties;
     private final AppointmentCreationService appointmentCreationService;
+    private final OutboxSenderService outboxSenderService;
 
     @Override
     @Transactional
@@ -61,14 +65,16 @@ public class AppointmentManagementJob implements Job {
         List<AvailableTime> matchingAvailableTimes = availableTimeService.findMatchesForAvailableTime(availableTimeToMatch);
         log.info("Found {} matching times for available time {}", matchingAvailableTimes.size(), availableTimeId);
 
-        createAppointments(availableTimeToMatch, matchingAvailableTimes);
+        List<UUID> partnerIds = createAppointmentsAndGetPartnerIds(availableTimeToMatch, matchingAvailableTimes);
+        createChatsWithPartners(personId, partnerIds);
     }
 
-    private void createAppointments(AvailableTime initialAvailableTime, List<AvailableTime> matchingAvailableTimes) {
+    private List<UUID> createAppointmentsAndGetPartnerIds(AvailableTime initialAvailableTime, List<AvailableTime> matchingAvailableTimes) {
         Queue<AvailableTime> availableTimes = new ArrayDeque<>();
         availableTimes.add(initialAvailableTime);
 
         List<AppointmentDetails> appointments = new ArrayList<>();
+        List<UUID> partnerIds = new ArrayList<>();
         while (!availableTimes.isEmpty()) {
             var availableTime = availableTimes.poll();
             for (var matchingTime : matchingAvailableTimes) {
@@ -79,11 +85,13 @@ public class AppointmentManagementJob implements Job {
                         .ifPresent(result -> {
                             availableTimes.addAll(result.initialAvailableTimeSplit());
                             appointments.add(result.appointmentDetails());
+                            partnerIds.add(matchingTime.getPersonId());
                         });
             }
         }
 
-        log.info("{} appointments were scheduled for person {}", appointments.size(), initialAvailableTime.getPersonId());
+        log.info("{} appointments with {} partners were scheduled for person {}", appointments.size(), partnerIds.size(), initialAvailableTime.getPersonId());
+        return partnerIds;
     }
 
     private Optional<AppointmentCreationResultDto> tryToCreateAppointment(AvailableTime availableTime, AvailableTime matchingTime) {
@@ -106,6 +114,13 @@ public class AppointmentManagementJob implements Job {
             );
         }
         return Optional.empty();
+    }
+
+    private void createChatsWithPartners(UUID personId, List<UUID> partners) {
+        for (var partnerId : partners) {
+            log.info("Creating chat between {} and {}", personId, partnerId);
+            outboxSenderService.sendMessage(EventTopic.CREATE_CHAT, new CreatePrivateChatEvent(personId, partnerId));
+        }
     }
 
     private TimePeriod getOverlap(AvailableTime first, AvailableTime second) {
