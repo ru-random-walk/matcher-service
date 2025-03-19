@@ -16,14 +16,15 @@ public record ScheduleTimeFrameDto(
         UUID partnerId,
         @Nullable
         UUID appointmentId,
+        @Nullable
+        UUID availableTimeId,
         @Schema(example = "01:30:00.000+03:00")
         @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
         OffsetTime timeFrom,
         @Schema(example = "01:30:00.000+03:00")
         @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
         OffsetTime timeUntil,
-        Double latitude,
-        Double longitude,
+        LocationDto location,
         List<UUID> availableTimeClubsInFilter,
         AppointmentStatus appointmentStatus
 ) {

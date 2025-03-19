@@ -113,7 +113,7 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
     public List<AvailableTime> findMatchesForAvailableTime(AvailableTime availableTimeToFindMatches) {
         List<AvailableTime> matchingTimes = availableTimeRepository.findMatchingAvailableTimes(
                 availableTimeToFindMatches.getPersonId(),
-                availableTimeToFindMatches.getLocation(),
+                availableTimeToFindMatches.getLocation().getPoint(),
                 availableTimeToFindMatches.getSearchAreaInMeters(),
                 availableTimeToFindMatches.getDate(),
                 availableTimeToFindMatches.getTimeFrom(),

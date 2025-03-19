@@ -60,8 +60,8 @@ public class AppointmentCreationServiceImpl implements AppointmentCreationServic
     }
 
     private Point getApproximateAppointmentLocation(AvailableTime availableTime, AvailableTime matchingTime) {
-        double approximateLatitude = (availableTime.getLatitude() + matchingTime.getLatitude()) / 2;
-        double approximateLongitude = (availableTime.getLongitude() + matchingTime.getLongitude()) / 2;
+        double approximateLatitude = (availableTime.getLocation().getLatitude() + matchingTime.getLocation().getLatitude()) / 2;
+        double approximateLongitude = (availableTime.getLocation().getLongitude() + matchingTime.getLocation().getLongitude()) / 2;
 
         return GeometryUtil.createPoint(approximateLongitude, approximateLatitude);
     }

@@ -17,7 +17,7 @@ public interface AvailableTimeRepository extends JpaRepository<AvailableTime, UU
     @Query(value = """
         select at from AvailableTime as at
         join fetch at.dayLimit as dl
-        where distance(at.location, :location) <= :searchDistance
+        where distance(at.location.point, :location) <= :searchDistance
         and dl.walkCount > 0
         and at.personId != :personId
         and at.date = :matchingDate

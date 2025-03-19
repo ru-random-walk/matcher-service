@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
+import ru.randomwalk.matcherservice.model.dto.LocationDto;
 import ru.randomwalk.matcherservice.model.dto.ScheduleTimeFrameDto;
 import ru.randomwalk.matcherservice.model.dto.UserScheduleDto;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
@@ -32,6 +33,7 @@ public class ScheduleMapper {
 
     private final MatcherProperties matcherProperties;
     private final AppointmentDetailsService appointmentDetailsService;
+    private final AvailableTimeMapper availableTimeMapper;
 
     public List<UserScheduleDto> getScheduleForPerson(Person person) {
         var availableTimes = person.getAvailableTimes();
@@ -93,11 +95,11 @@ public class ScheduleMapper {
         return availableTimes.stream()
                 .map(time ->
                         ScheduleTimeFrameDto.builder()
+                                .availableTimeId(time.getId())
                                 .timeFrom(time.getTimeFrom())
                                 .timeUntil(time.getTimeUntil())
                                 .availableTimeClubsInFilter(new ArrayList<>(time.getClubsInFilter()))
-                                .latitude(time.getLatitude())
-                                .longitude(time.getLongitude())
+                                .location(availableTimeMapper.toLocationDto(time.getLocation()))
                                 .build()
                 ).collect(Collectors.toList());
     }
@@ -118,8 +120,12 @@ public class ScheduleMapper {
                                 .timeFrom(appointment.getStartsAt().toOffsetTime())
                                 .timeUntil(appointment.getStartsAt().toOffsetTime().plusHours(matcherProperties.getMinWalkTimeInSeconds()))
                                 .partnerId(appointmentToPartnerMap.get(appointment.getId()))
-                                .longitude(appointment.getLongitude())
-                                .latitude(appointment.getLatitude())
+                                .location(
+                                        LocationDto.builder()
+                                                .longitude(appointment.getLongitude())
+                                                .latitude(appointment.getLatitude())
+                                                .build()
+                                )
                                 .build()
                 ).collect(Collectors.toList());
     }
