@@ -23,24 +23,20 @@ public record AvailableTimeModifyDto(
         @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
         OffsetTime timeUntil,
         @NotNull
-        Double longitude,
-        @NotNull
-        Double latitude,
+        LocationDto location,
         List<UUID> clubsInFilter
 ) {
         public AvailableTimeModifyDto(
                 LocalDate date,
-                OffsetTime timeFrom, @NotNull
+                OffsetTime timeFrom,
                 OffsetTime timeUntil,
-                Double longitude,
-                Double latitude,
+                LocationDto location,
                 List<UUID> clubsInFilter
         ) {
                 this.date = date;
                 this.timeFrom = timeFrom;
                 this.timeUntil = timeUntil;
-                this.longitude = longitude;
-                this.latitude = latitude;
+                this.location = location;
                 this.clubsInFilter = Objects.requireNonNullElseGet(clubsInFilter, ArrayList::new);
         }
 }

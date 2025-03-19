@@ -11,7 +11,6 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import ru.randomwalk.matcherservice.service.util.MatcherConstants;
 
 import java.io.Serializable;
 import java.time.LocalDate;

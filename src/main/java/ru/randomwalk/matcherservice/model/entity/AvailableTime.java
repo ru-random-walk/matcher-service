@@ -3,6 +3,7 @@ package ru.randomwalk.matcherservice.model.entity;
 import brave.internal.Nullable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -12,16 +13,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import org.locationtech.jts.geom.Point;
 import ru.randomwalk.matcherservice.config.converter.UUIDSetConverter;
-import ru.randomwalk.matcherservice.service.util.GeometryUtil;
 
 import java.time.LocalDate;
 import java.time.OffsetTime;
@@ -60,8 +58,8 @@ public class AvailableTime {
     @Column(name = "DATE", nullable = false)
     private LocalDate date;
 
-    @Column(name = "LOCATION")
-    private Point location;
+    @Embedded
+    private Location location;
 
     @Column(name = "SEARCH_AREA_METERS")
     private Integer searchAreaInMeters = DEFAULT_SEARCH_AREA_IN_METERS;
@@ -87,14 +85,6 @@ public class AvailableTime {
 
     public void setSearchAreaInMeters(@Nullable Integer searchAreaInMeters) {
         this.searchAreaInMeters = requireNonNullElse(searchAreaInMeters, DEFAULT_SEARCH_AREA_IN_METERS);
-    }
-
-    public double getLongitude() {
-        return GeometryUtil.getLongitude(location);
-    }
-
-    public double getLatitude() {
-        return GeometryUtil.getLatitude(location);
     }
 
 }

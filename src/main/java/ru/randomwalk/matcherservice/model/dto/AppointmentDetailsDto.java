@@ -5,7 +5,6 @@ import lombok.Builder;
 import org.springframework.format.annotation.DateTimeFormat;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
