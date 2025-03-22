@@ -54,9 +54,11 @@ public class ScheduleMapper {
                         buildCurrentDateScheduleDto(
                                 availableTimeByDate.get(date),
                                 appointmentByDate.get(date),
-                                getAppointmentToPartnerMap(person.getId(), appointments)
+                                getAppointmentToPartnerMap(person.getId(), appointments),
+                                date
                         )
-                ).collect(Collectors.toList());
+                )
+                .collect(Collectors.toList());
     }
 
     private Map<UUID, UUID> getAppointmentToPartnerMap(UUID personId, List<AppointmentDetails> appointmentDetails) {
@@ -68,7 +70,8 @@ public class ScheduleMapper {
     private UserScheduleDto buildCurrentDateScheduleDto(
             List<AvailableTime> availableTimes,
             List<AppointmentDetails> appointments,
-            Map<UUID, UUID> appointmentToPartnerMap
+            Map<UUID, UUID> appointmentToPartnerMap,
+            LocalDate date
     ) {
         var firstAvailableTime = isEmpty(availableTimes) ? null : availableTimes.getFirst();
         var firstAppointment = isEmpty(appointments) ? null : appointments.getFirst();
@@ -83,6 +86,7 @@ public class ScheduleMapper {
         return UserScheduleDto.builder()
                 .walkCount(walkCount)
                 .timezone(timeZone)
+                .date(date)
                 .timeFrames(timeFrames)
                 .build();
     }
