@@ -38,7 +38,7 @@ public class AppointmentCreationServiceImpl implements AppointmentCreationServic
             OffsetTime startTime
     ) {
         UUID personId = availableTime.getPersonId();
-        UUID partnerId = availableTime.getPersonId();
+        UUID partnerId = matchingTime.getPersonId();
         log.info(
                 "Creating appointment for people: {} with availableTimeId={} and {} with availableTimeId={}",
                 personId, partnerId, availableTime.getId(), matchingTime.getId()
@@ -54,7 +54,7 @@ public class AppointmentCreationServiceImpl implements AppointmentCreationServic
 
         var appointment = appointmentDetailsService.createAppointment(personId, partnerId, startDateTime, appointmentLocation);
         List<AvailableTime> initialTimeSplit = availableTimeService.splitAvailableTime(availableTime, startTime, walkEndTime);
-        List<AvailableTime> matchingTimeSplit = availableTimeService.splitAvailableTime(availableTime, startTime, walkEndTime);
+        List<AvailableTime> matchingTimeSplit = availableTimeService.splitAvailableTime(matchingTime, startTime, walkEndTime);
 
         return new AppointmentCreationResultDto(appointment, initialTimeSplit, matchingTimeSplit);
     }
