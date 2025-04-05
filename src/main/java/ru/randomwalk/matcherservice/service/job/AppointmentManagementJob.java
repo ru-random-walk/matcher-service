@@ -78,7 +78,7 @@ public class AppointmentManagementJob implements Job {
         while (!availableTimes.isEmpty()) {
             var availableTime = availableTimes.poll();
             for (var matchingTime : matchingAvailableTimes) {
-                if (!canOrganizeWalk(availableTime)) {
+                if (!canOrganizeWalk(availableTime) || !canOrganizeWalk(matchingTime)) {
                     break;
                 }
                 tryToCreateAppointment(availableTime, matchingTime)
@@ -95,11 +95,12 @@ public class AppointmentManagementJob implements Job {
     }
 
     private Optional<AppointmentCreationResultDto> tryToCreateAppointment(AvailableTime availableTime, AvailableTime matchingTime) {
-        var overlappingInterval = getOverlap(availableTime, matchingTime);
-        if (overlappingInterval == null) {
-            return Optional.empty();
-        }
         try {
+            var overlappingInterval = getOverlap(availableTime, matchingTime);
+            if (!overlapForWalkExists(overlappingInterval)) {
+                return Optional.empty();
+            }
+
             return Optional.of(
                     appointmentCreationService.createAppointmentForAvailableTime(
                             availableTime,
@@ -128,6 +129,11 @@ public class AppointmentManagementJob implements Job {
                 TimePeriod.of(first.getTimeFrom(), first.getTimeUntil()),
                 TimePeriod.of(second.getTimeFrom(), second.getTimeUntil())
         );
+    }
+
+    private boolean overlapForWalkExists(TimePeriod overlap) {
+        return overlap != null
+                && ChronoUnit.SECONDS.between(overlap.from(), overlap.until()) >= matcherProperties.getMinWalkTimeInSeconds();
     }
 
     private boolean canOrganizeWalk(AvailableTime availableTime) {

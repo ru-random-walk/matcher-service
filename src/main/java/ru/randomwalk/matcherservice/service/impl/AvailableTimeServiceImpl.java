@@ -121,11 +121,11 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
         );
 
         Person initialPerson = personService.findById(availableTimeToFindMatches.getPersonId());
-        Map<UUID, Person> personMap = getPersonByAvailableTimeMap(matchingTimes);
+        Map<UUID, Person> personByTimeMap = getPersonByAvailableTimeMap(matchingTimes);
 
         return matchingTimes.stream()
-                .filter(matchingTime -> filterGroups(availableTimeToFindMatches, matchingTime, personMap))
-                .map(time -> Pair.of(time, personService.getClubsSimilarityBetweenPeople(initialPerson, personMap.get(time.getPersonId()))))
+                .filter(matchingTime -> filterGroups(availableTimeToFindMatches, matchingTime, personByTimeMap))
+                .map(time -> Pair.of(time, personService.getClubsSimilarityBetweenPeople(initialPerson, personByTimeMap.get(time.getId()))))
                 .sorted(Comparator.comparingInt(Pair::getRight))
                 .map(Pair::getLeft)
                 .collect(Collectors.toList());
