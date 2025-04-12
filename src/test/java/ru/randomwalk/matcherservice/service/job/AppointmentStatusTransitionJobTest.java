@@ -32,11 +32,15 @@ import java.util.Date;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
+import static ru.randomwalk.matcherservice.model.enam.AppointmentStatus.APPOINTED;
+import static ru.randomwalk.matcherservice.model.enam.AppointmentStatus.CANCELED;
 import static ru.randomwalk.matcherservice.model.enam.AppointmentStatus.DONE;
 import static ru.randomwalk.matcherservice.model.enam.AppointmentStatus.IN_PROGRESS;
+import static ru.randomwalk.matcherservice.model.enam.AppointmentStatus.REQUESTED;
 
 @SpringBootTest
 @ActiveProfiles("local")
@@ -67,6 +71,7 @@ class AppointmentStatusTransitionJobTest extends AbstractContainerTest {
         UUID secondPersonId = UUID.randomUUID();
         personService.addNewPerson(RegisteredUserInfoEvent.builder().id(firstPersonId).build());
         personService.addNewPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
+
         var newAppointment = appointmentDetailsService.createAppointment(firstPersonId, secondPersonId, OffsetDateTime.now().minusDays(1), GeometryUtil.createPoint(1.0, 2.0));
         var inProgressJobKey = JobKey.jobKey(String.format("AppointmentStatusTransitionJob-%s-%s", newAppointment.getId(), IN_PROGRESS));
         var doneJobKey = JobKey.jobKey(String.format("AppointmentStatusTransitionJob-%s-%s", newAppointment.getId(), DONE));
@@ -78,6 +83,51 @@ class AppointmentStatusTransitionJobTest extends AbstractContainerTest {
         var doneTrigger = scheduler.getTrigger(TriggerKey.triggerKey(doneJobKey.getName()));
         assertEquals(Date.from(newAppointment.getStartsAt().atZoneSameInstant(ZoneOffset.UTC).toInstant()), inProgressTrigger.getFirst().getNextFireTime());
         assertEquals(Date.from(newAppointment.getStartsAt().plusSeconds(matcherProperties.getMinWalkTimeInSeconds()).atZoneSameInstant(ZoneOffset.UTC).toInstant()), doneTrigger.getNextFireTime());
+    }
+
+    @Test
+    @Transactional
+    @Rollback
+    void checkNoJobIsScheduledAfterAppointmentWasRequested() throws SchedulerException {
+        //given
+        UUID requesterId = UUID.randomUUID();
+        UUID secondPersonId = UUID.randomUUID();
+        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(requesterId).build());
+        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
+
+        //when
+        var newAppointment = appointmentDetailsService.requestForAppointment(requesterId, secondPersonId, OffsetDateTime.now().minusDays(1), GeometryUtil.createPoint(1.0, 2.0));
+
+        //then
+        var inProgressJobKey = JobKey.jobKey(String.format("AppointmentStatusTransitionJob-%s-%s", newAppointment.getId(), IN_PROGRESS));
+        var doneJobKey = JobKey.jobKey(String.format("AppointmentStatusTransitionJob-%s-%s", newAppointment.getId(), DONE));
+        assertFalse(scheduler.checkExists(inProgressJobKey));
+        assertFalse(scheduler.checkExists(doneJobKey));
+        assertEquals(REQUESTED, newAppointment.getStatus());
+        assertEquals(2, newAppointment.getMembers().size());
+        assertEquals(requesterId, newAppointment.getRequesterId());
+    }
+
+    @Test
+    @Transactional
+    @Rollback
+    void checkRequestedAppointmentsAreDeletedWhenNewWalkIsAppointed() {
+        //given
+        UUID requesterId = UUID.randomUUID();
+        UUID secondPersonId = UUID.randomUUID();
+        UUID personId = UUID.randomUUID();
+        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(requesterId).build());
+        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
+        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(personId).build());
+        var requestedAppointment = appointmentDetailsService.requestForAppointment(requesterId, secondPersonId, OffsetDateTime.now().minusDays(1), GeometryUtil.createPoint(1.0, 2.0));
+
+        //when
+        var newAppointment = appointmentDetailsService.createAppointment(personId, secondPersonId, OffsetDateTime.now().minusDays(1), GeometryUtil.createPoint(1.0, 2.0));
+
+        //then
+        var cancelledAppointment = appointmentDetailsService.getById(requestedAppointment.getId());
+        assertEquals(APPOINTED, newAppointment.getStatus());
+        assertEquals(CANCELED, cancelledAppointment.getStatus());
     }
 
     @Test

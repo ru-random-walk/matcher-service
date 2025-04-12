@@ -9,6 +9,12 @@ import java.util.Objects;
 public class TimeUtil {
 
 
+    /**
+     * Checks whether two time periods overlap or not
+     * @param firstInterval     first time period
+     * @param secondInterval    second time period
+     * @return  null if time periods don't overlap, otherwise returns overlapping interval as time period
+     */
     @Nullable
     public static TimePeriod getOverlappingInterval(
             TimePeriod firstInterval,

@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.dto.AvailableTimeModifyDto;
+import ru.randomwalk.matcherservice.model.dto.RequestForAppointmentDto;
 import ru.randomwalk.matcherservice.model.dto.TimePeriod;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
@@ -56,6 +57,33 @@ public class AppointmentValidator {
         checkThatDoesNotConflictWithExistingAvailableTimes(requestDto, getAvailableTimesWithoutSpecified(person, availableTimeToChange));
     }
 
+    public void validateRequestForWalk(RequestForAppointmentDto dto, Person requester, Person partner) {
+        checkThatTimeIsNotExpired(dto.startTime());
+        checkThatRequestDoesNotConflictWithExistingAppointments(dto.startTime(), requester.getAppointments());
+        checkThatRequestDoesNotConflictWithExistingAppointments(dto.startTime(), partner.getAppointments());
+    }
+
+    private void checkThatTimeIsNotExpired(OffsetDateTime startsAt) {
+        LocalDateTime localDateTime = startsAt.toLocalDateTime();
+        if (localDateTime.isBefore(LocalDateTime.now())) {
+            throw new MatcherBadRequestException("Start time cannot be in the past");
+        }
+    }
+
+    private void checkThatRequestDoesNotConflictWithExistingAppointments(OffsetDateTime startsAt, List<AppointmentDetails> appointments) {
+        List<OffsetDateTime> appointmentStarts = getAllAppointmentsThatStartsAtDate(startsAt.toLocalDate(), appointments);
+        if (appointmentStarts == null || appointmentStarts.isEmpty()) {
+            return;
+        }
+        OffsetTime requestTimeFrom = startsAt.toOffsetTime();
+        OffsetTime requestTimeUntil = startsAt.toOffsetTime().plusSeconds(matcherProperties.getMinWalkTimeInSeconds());
+        for (var existingStartTime : appointmentStarts) {
+            if (conflictsWithAppointmentTime(requestTimeFrom, requestTimeUntil, existingStartTime)) {
+                throw new MatcherBadRequestException("Requested time conflicts with existing appointment");
+            }
+        }
+    }
+
     private void checkThatTimeZoneIsTheSame(AvailableTimeModifyDto dto) {
         boolean offsetIsSame = Objects.equals(dto.timeFrom().getOffset(), dto.timeUntil().getOffset());
 
@@ -88,12 +116,7 @@ public class AppointmentValidator {
     }
 
     private void checkThatDoesNotConflictWithActiveAppointments(AvailableTimeModifyDto dto, List<AppointmentDetails> appointmentDetails) {
-        Map<LocalDate, List<OffsetDateTime>> activeAppointmentTime = appointmentDetails.stream()
-                .filter(detail -> detail.getStatus().isActive())
-                .map(AppointmentDetails::getStartsAt)
-                .collect(Collectors.groupingBy(OffsetDateTime::toLocalDate));
-
-        List<OffsetDateTime> appointmentStarts = activeAppointmentTime.get(dto.date());
+        List<OffsetDateTime> appointmentStarts = getAllAppointmentsThatStartsAtDate(dto.date(), appointmentDetails);
         if (appointmentStarts == null) {
             return;
         }
@@ -182,6 +205,15 @@ public class AppointmentValidator {
         availableTimes.remove(timeToRemove);
 
         return availableTimes;
+    }
+
+    private List<OffsetDateTime> getAllAppointmentsThatStartsAtDate(LocalDate date, List<AppointmentDetails> appointmentDetails) {
+        Map<LocalDate, List<OffsetDateTime>> activeAppointmentTime = appointmentDetails.stream()
+                .filter(detail -> detail.getStatus().isActive())
+                .map(AppointmentDetails::getStartsAt)
+                .collect(Collectors.groupingBy(OffsetDateTime::toLocalDate));
+
+        return activeAppointmentTime.get(date);
     }
 
 }

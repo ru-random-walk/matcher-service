@@ -117,13 +117,15 @@ public class ScheduleMapper {
         }
 
         return appointments.stream()
+                .filter(it -> it.getStatus().isShowInSchedule())
                 .map(appointment ->
                         ScheduleTimeFrameDto.builder()
                                 .appointmentStatus(appointment.getStatus())
                                 .appointmentId(appointment.getId())
                                 .timeFrom(appointment.getStartsAt().toOffsetTime())
-                                .timeUntil(appointment.getStartsAt().toOffsetTime().plusHours(matcherProperties.getMinWalkTimeInSeconds()))
+                                .timeUntil(appointment.getStartsAt().toOffsetTime().plusSeconds(matcherProperties.getMinWalkTimeInSeconds()))
                                 .partnerId(appointmentToPartnerMap.get(appointment.getId()))
+                                .requesterId(appointment.getRequesterId())
                                 .location(
                                         LocationDto.builder()
                                                 .longitude(appointment.getLongitude())

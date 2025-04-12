@@ -2,21 +2,25 @@ package ru.randomwalk.matcherservice.model.enam;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
 @Getter
+@RequiredArgsConstructor
 @AllArgsConstructor
 public enum AppointmentStatus {
-    REQUESTED(true),
-    APPOINTED(true),
-    IN_PROGRESS(true),
-    DONE(false),
-    CANCELED(false);
+    REQUESTED(false, true),
+    APPOINTED(true, true),
+    IN_PROGRESS(true, true),
+    DONE(false, false, true),
+    CANCELED(false, false, true);
 
     private final boolean isActive;
+    private final boolean showInSchedule;
+    private boolean isTerminal = false;
 
     private static final Set<AppointmentStatus> FROM_REQUESTED_ALLOWED_TRANSITIONS = EnumSet.of(
             APPOINTED, CANCELED
