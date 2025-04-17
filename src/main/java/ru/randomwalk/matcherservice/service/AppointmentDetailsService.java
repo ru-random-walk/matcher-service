@@ -12,6 +12,8 @@ import java.util.UUID;
 public interface AppointmentDetailsService {
     AppointmentDetails createAppointment(UUID personId, UUID partnerId, OffsetDateTime startsAt, Point approximateLocation);
 
+    AppointmentDetails requestForAppointment(UUID requesterId, UUID partnerId, OffsetDateTime startAt, Point location);
+
     List<AppointmentPartner> getAllPartnerIdsForPersonAppointments(UUID personId, List<AppointmentDetails> appointments);
 
     List<UUID> getAppointmentParticipants(UUID appointmentId);

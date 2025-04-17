@@ -6,6 +6,7 @@ import org.locationtech.jts.geom.Point;
 import org.quartz.JobBuilder;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
+import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
+import ru.randomwalk.matcherservice.model.dto.TimePeriod;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.Person;
@@ -25,12 +27,14 @@ import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
 import ru.randomwalk.matcherservice.service.DayLimitService;
 import ru.randomwalk.matcherservice.service.PersonService;
 import ru.randomwalk.matcherservice.service.job.AppointmentStatusTransitionJob;
+import ru.randomwalk.matcherservice.service.util.TimeUtil;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -48,18 +52,44 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
     @Transactional
     public AppointmentDetails createAppointment(UUID personId, UUID partnerId, OffsetDateTime startsAt, Point approximateLocation) {
         log.info("Create appointment for people with ids: {}, {}. Starts at: {}", personId, partnerId, startsAt);
+        var appointmentDetails = createNewAppointment(
+                AppointmentStatus.APPOINTED,
+                startsAt,
+                approximateLocation,
+                personId,
+                partnerId
+        );
+        log.info("Appointment {} is created", appointmentDetails.getId());
+
+        return appointmentDetails;
+    }
+
+    @Override
+    @Transactional
+    public AppointmentDetails requestForAppointment(UUID requesterId, UUID partnerId, OffsetDateTime startAt, Point location) {
+        log.info("Creating request for appointment from {} to {} at {}", requesterId, partnerId, startAt);
+        var appointmentRequest = createNewAppointment(
+                AppointmentStatus.REQUESTED,
+                startAt,
+                location,
+                requesterId,
+                partnerId
+        );
+        appointmentRequest.setRequesterId(requesterId);
+
+        log.info("Appointment {} is requested", appointmentRequest.getId());
+
+        return appointmentRequest;
+    }
+
+    private AppointmentDetails createNewAppointment(AppointmentStatus status, OffsetDateTime startsAt, Point location, UUID... membersIds) {
         AppointmentDetails appointmentDetails = new AppointmentDetails();
-        appointmentDetails.setStatus(AppointmentStatus.APPOINTED);
         appointmentDetails.setStartsAt(startsAt);
-        appointmentDetails.setLocation(approximateLocation);
-
+        appointmentDetails.setLocation(location);
         appointmentDetails = appointmentDetailsRepository.save(appointmentDetails);
-        linkMembersToAppointment(appointmentDetails, personId, partnerId);
 
-        log.info("Appointment {} created", appointmentDetails.getId());
-
-        scheduleStatusTransitionJob(appointmentDetails.getId(), AppointmentStatus.IN_PROGRESS, appointmentDetails.getStartsAt());
-        scheduleStatusTransitionJob(appointmentDetails.getId(), AppointmentStatus.DONE, calculateEndTime(appointmentDetails.getStartsAt()));
+        linkMembersToAppointment(appointmentDetails, membersIds);
+        changeStatus(appointmentDetails, status);
 
         return appointmentDetails;
     }
@@ -91,6 +121,7 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
         List<UUID> participantsIds = getAppointmentParticipants(appointmentId);
         restoreDayLimitForPartner(appointment, initiatorId, participantsIds);
         unlinkAppointmentFromUsers(appointment, participantsIds);
+        cancelPendingStatusTransitionJobs(appointmentId);
         appointmentDetailsRepository.delete(appointment);
     }
 
@@ -106,13 +137,20 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
     public void changeStatus(AppointmentDetails appointment, AppointmentStatus toStatus) {
         log.info("Changing status of appointment {} from {} to {}", appointment.getId(), appointment.getStatus(), toStatus);
 
-        if (!appointment.getStatus().isAllowedTransition(toStatus)) {
+        if (appointment.getStatus() != null && !appointment.getStatus().isAllowedTransition(toStatus)) {
             throw new MatcherBadRequestException("Transition to status %s is not possible from %s", toStatus, appointment.getStatus());
         }
 
         appointment.setStatus(toStatus);
-        if (!toStatus.isActive()) {
+        if (toStatus.isTerminal()) {
             appointment.setEndedAt(OffsetDateTime.now());
+        }
+
+        if (toStatus == AppointmentStatus.APPOINTED) {
+            appointment.getMembers()
+                    .forEach(person -> cancelAllRequestedAppointmentsOnTime(person, appointment.getStartsAt()));
+            scheduleStatusTransitionJob(appointment.getId(), AppointmentStatus.IN_PROGRESS, appointment.getStartsAt());
+            scheduleStatusTransitionJob(appointment.getId(), AppointmentStatus.DONE, calculateEndTime(appointment.getStartsAt()));
         }
 
         log.info("Appointment {} status changed to {}", appointment.getId(), toStatus);
@@ -139,7 +177,35 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
     private void linkMembersToAppointment(AppointmentDetails appointmentDetails, UUID... membersIds) {
         List<Person> people = personService.findAllByIds(List.of(membersIds));
         people.forEach(person -> person.getAppointments().add(appointmentDetails));
+        appointmentDetails.getMembers().addAll(people);
         personService.saveAll(people);
+    }
+
+    private void cancelAllRequestedAppointmentsOnTime(Person person, OffsetDateTime startTime) {
+        List<AppointmentDetails> requestedAppointments = person.getAppointments().stream()
+                .filter(appointment -> appointment.getStatus() == AppointmentStatus.REQUESTED)
+                .filter(appointment -> hasOverlapWithTime(appointment, startTime))
+                .toList();
+
+        requestedAppointments.forEach(appointment -> changeStatus(appointment, AppointmentStatus.CANCELED));
+    }
+
+    private boolean hasOverlapWithTime(AppointmentDetails appointment, OffsetDateTime otherTime) {
+        if (!Objects.equals(appointment.getStartDate(), otherTime.toLocalDate())) {
+            return false;
+        }
+        TimePeriod timePeriod = TimeUtil.getOverlappingInterval(
+                getWalkTimePeriod(otherTime),
+                getWalkTimePeriod(appointment.getStartsAt())
+        );
+        return !Objects.isNull(timePeriod);
+    }
+
+    private TimePeriod getWalkTimePeriod(OffsetDateTime startTime) {
+        return new TimePeriod(
+                startTime.toOffsetTime(),
+                startTime.toOffsetTime().plusSeconds(matcherProperties.getMinWalkTimeInSeconds())
+        );
     }
 
     private void scheduleStatusTransitionJob(UUID appointmentId, AppointmentStatus toStatus, OffsetDateTime jobFireTime) {
@@ -156,6 +222,22 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
             scheduler.scheduleJob(jobDetail, trigger);
         } catch (SchedulerException e) {
             log.error("Error scheduling job {}", jobDetail.getKey(), e);
+        }
+    }
+
+    private void cancelPendingStatusTransitionJobs(UUID appointmentId) {
+        cancelTransitionJobIfExists(getJobName(appointmentId, AppointmentStatus.APPOINTED));
+        cancelTransitionJobIfExists(getJobName(appointmentId, AppointmentStatus.DONE));
+    }
+
+    private void cancelTransitionJobIfExists(String jobName) {
+        try {
+            var key = JobKey.jobKey(jobName);
+            if (scheduler.checkExists(key)) {
+                scheduler.deleteJob(key);
+            }
+        } catch (Exception e) {
+            log.error("Error cancelling job {}", jobName, e);
         }
     }
 

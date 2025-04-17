@@ -31,5 +31,4 @@ public interface AvailableTimeRepository extends JpaRepository<AvailableTime, UU
             @Param("timeFrom") OffsetTime timeFrom,
             @Param("timeUntil") OffsetTime timeUntil
     );
-
 }

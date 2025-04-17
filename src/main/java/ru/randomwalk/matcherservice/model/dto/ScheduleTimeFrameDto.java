@@ -15,6 +15,8 @@ public record ScheduleTimeFrameDto(
         @Nullable
         UUID partnerId,
         @Nullable
+        UUID requesterId,
+        @Nullable
         UUID appointmentId,
         @Nullable
         UUID availableTimeId,

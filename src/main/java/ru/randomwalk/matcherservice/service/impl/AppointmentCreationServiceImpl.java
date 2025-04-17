@@ -4,8 +4,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Point;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.dto.AppointmentCreationResultDto;
+import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.service.AppointmentCreationService;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
@@ -57,6 +59,13 @@ public class AppointmentCreationServiceImpl implements AppointmentCreationServic
         List<AvailableTime> matchingTimeSplit = availableTimeService.splitAvailableTime(matchingTime, startTime, walkEndTime);
 
         return new AppointmentCreationResultDto(appointment, initialTimeSplit, matchingTimeSplit);
+    }
+
+    @Override
+    @Transactional
+    public AppointmentDetails createRequestedAppointment(UUID requesterId, UUID partnerId, OffsetDateTime startsAt, Point location) {
+        log.info("Creating request for appointment. RequesterId: {}, partnerId: {}, startTime: {}", requesterId, partnerId, startsAt);
+        return appointmentDetailsService.requestForAppointment(requesterId, partnerId, startsAt, location);
     }
 
     private Point getApproximateAppointmentLocation(AvailableTime availableTime, AvailableTime matchingTime) {
