@@ -14,11 +14,11 @@ import ru.randomwalk.matcherservice.service.PersonService;
 @Slf4j
 @RequiredArgsConstructor
 @Profile({"test", "local"})
+@PreAuthorize("hasAuthority('TESTER')")
 public class TestController {
 
     private final PersonService personService;
 
-    @PreAuthorize("hasAuthority('TESTER')")
     @PostMapping("/test/add-person")
     public void addPerson(@RequestBody RegisteredUserInfoEvent userInfoEvent) {
         personService.addNewPerson(userInfoEvent);
