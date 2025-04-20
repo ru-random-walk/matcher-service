@@ -144,7 +144,10 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
     }
 
     @Override
+    @Transactional
     public void deleteAvailableTime(AvailableTime availableTime) {
+        var person = personService.findById(availableTime.getPersonId());
+        person.getAvailableTimes().remove(availableTime);
         availableTimeRepository.delete(availableTime);
         deleteAppointmentManagementJobIfExists(availableTime);
     }
