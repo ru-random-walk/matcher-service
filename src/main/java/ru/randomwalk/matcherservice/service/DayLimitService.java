@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public interface DayLimitService {
     void incrementDayLimitForPersonAndDate(UUID personId, LocalDate date);
+    void decrementDayLimitForPersonAndDate(UUID personId, LocalDate date);
     int getCurrentWalkCountForAvailableTime(AvailableTime availableTime);
     void decrementDayLimitForAvailableTime(AvailableTime availableTime);
 }

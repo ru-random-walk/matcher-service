@@ -7,6 +7,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.randomwalk.matcherservice.model.dto.AppointmentDetailsDto;
@@ -39,5 +40,19 @@ public class AppointmentController {
     public AppointmentDetailsDto getAppointment(@PathVariable UUID appointmentId, Principal principal) {
         log.info("GET /appointment/{} from user {}", appointmentId, principal.getName());
         return appointmentFacade.getAppointmentById(appointmentId, principal.getName());
+    }
+
+    @PutMapping("/{appointmentId}/approve")
+    @Operation(summary = "Approve requested appointment")
+    public void approveAppointment(@PathVariable UUID appointmentId, Principal principal) {
+        log.info("PUT /appointment/{}/approve from user {}", appointmentId, principal.getName());
+        appointmentFacade.approveAppointment(appointmentId, principal.getName());
+    }
+
+    @PutMapping("/{appointmentId}/reject")
+    @Operation(summary = "Reject requested appointment")
+    public void rejectAppointment(@PathVariable UUID appointmentId, Principal principal) {
+        log.info("PUT /appointment/{}/reject from user {}", appointmentId, principal.getName());
+        appointmentFacade.rejectAppointment(appointmentId, principal.getName());
     }
 }

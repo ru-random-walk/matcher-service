@@ -3,6 +3,7 @@ package ru.randomwalk.matcherservice.service.facade.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.randomwalk.matcherservice.model.dto.AppointmentDetailsDto;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.exception.MatcherForbiddenException;
@@ -44,6 +45,38 @@ public class AppointmentFacadeImpl implements AppointmentFacade {
         }
 
         appointmentDetailsService.cancelAppointmentByPerson(appointmentId, personId);
+    }
+
+    @Override
+    @Transactional
+    public void approveAppointment(UUID appointmentId, String userName) {
+        UUID personId = UUID.fromString(userName);
+        var appointment = appointmentDetailsService.getById(appointmentId);
+
+        checkPersonHasRightsToApproveAppointment(appointment, personId);
+
+        appointmentDetailsService.approveRequestedAppointment(appointment);
+    }
+
+    @Override
+    @Transactional
+    public void rejectAppointment(UUID appointmentId, String userName) {
+        UUID personId = UUID.fromString(userName);
+        var appointment = appointmentDetailsService.getById(appointmentId);
+
+        checkPersonHasRightsToApproveAppointment(appointment, personId);
+
+        appointmentDetailsService.rejectRequestedAppointment(appointment);
+    }
+
+    private void checkPersonHasRightsToApproveAppointment(AppointmentDetails appointment, UUID personId) {
+        boolean isMember = appointment.getMembers().stream()
+                .anyMatch(person -> person.getId() == personId);
+        boolean isNotRequester = appointment.getRequesterId() != personId;
+
+        if (!isMember || isNotRequester) {
+            throw new MatcherForbiddenException("You cannot approve this appointment");
+        }
     }
 
 }
