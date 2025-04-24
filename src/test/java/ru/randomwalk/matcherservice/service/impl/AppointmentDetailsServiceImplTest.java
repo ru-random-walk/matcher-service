@@ -85,8 +85,8 @@ class AppointmentDetailsServiceImplTest extends AbstractContainerTest {
         Person second = personService.findByIdWithFetchedAvailableTime(secondPersonId);
         assertEquals(2, first.getAvailableTimes().size());
         assertEquals(1, second.getAvailableTimes().size());
-        assertEquals(0, dayLimitRepository.findById(new DayLimit.DayLimitId(firstPersonId, requestedAppointment.getStartDate())).get().getWalkCount());
-        assertEquals(0, dayLimitRepository.findById(new DayLimit.DayLimitId(secondPersonId, requestedAppointment.getStartDate())).get().getWalkCount());
+        assertEquals(1, dayLimitRepository.findById(new DayLimit.DayLimitId(firstPersonId, requestedAppointment.getStartDate())).get().getWalkCount());
+        assertEquals(1, dayLimitRepository.findById(new DayLimit.DayLimitId(secondPersonId, requestedAppointment.getStartDate())).get().getWalkCount());
     }
 
     @Transactional

@@ -12,6 +12,7 @@ import ru.randomwalk.matcherservice.service.facade.AppointmentFacade;
 import ru.randomwalk.matcherservice.service.mapper.AppointmentMapper;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -71,7 +72,7 @@ public class AppointmentFacadeImpl implements AppointmentFacade {
 
     private void checkPersonHasRightsToApproveAppointment(AppointmentDetails appointment, UUID personId) {
         boolean isMember = appointment.getMembers().stream()
-                .anyMatch(person -> person.getId() == personId);
+                .anyMatch(person -> Objects.equals(person.getId(), personId));
         boolean isNotRequester = appointment.getRequesterId() != personId;
 
         if (!isMember || isNotRequester) {

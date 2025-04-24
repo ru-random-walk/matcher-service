@@ -181,12 +181,9 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
     @Override
     public void approveRequestedAppointment(AppointmentDetails appointment) {
         checkAppointmentIsRequested(appointment);
-        List<Person> members = appointment.getMembers();
 
-        members.forEach(person -> {
-            replaceAvailableTimeWithAppointment(person, appointment);
-            dayLimitService.decrementDayLimitForPersonAndDate(person.getId(), appointment.getStartDate());
-        });
+        List<Person> members = appointment.getMembers();
+        members.forEach(person -> replaceAvailableTimeWithAppointment(person, appointment));
 
         changeStatus(appointment, AppointmentStatus.APPOINTED);
     }
