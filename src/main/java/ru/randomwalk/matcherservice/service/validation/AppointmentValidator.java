@@ -108,7 +108,7 @@ public class AppointmentValidator {
         }
         Set<UUID> personClubs = person.getClubs().stream().map(Club::getClubId).collect(Collectors.toSet());
         clubsInFilter.stream()
-                .filter(personClubs::contains)
+                .filter(club -> !personClubs.contains(club))
                 .findAny()
                 .ifPresent(clubId -> {
                     throw new MatcherBadRequestException("User %s does not have club %s", person.getId(), clubId);
