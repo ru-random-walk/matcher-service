@@ -25,4 +25,6 @@ public interface AppointmentDetailsService {
     void changeStatus(AppointmentDetails appointment, AppointmentStatus toStatus);
 
     void changeStatus(UUID appointmentId, AppointmentStatus toStatus);
+
+    List<AppointmentDetails> getAllNotPastAppointmentsForPersonSchedule(UUID personId);
 }

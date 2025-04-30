@@ -12,6 +12,7 @@ import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.model.entity.projection.AppointmentPartner;
+import ru.randomwalk.matcherservice.repository.AppointmentDetailsRepository;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
 
 import java.time.LocalDate;
@@ -20,6 +21,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,18 +39,16 @@ public class ScheduleMapper {
 
     public List<UserScheduleDto> getScheduleForPerson(Person person) {
         var availableTimes = person.getAvailableTimes();
-        var appointments = person.getAppointments();
+        var appointments = appointmentDetailsService.getAllNotPastAppointmentsForPersonSchedule(person.getId());
 
         var availableTimeByDate = availableTimes.stream()
+                .filter(time -> time.getDate().isAfter(LocalDate.now()) || time.getDate().equals(LocalDate.now()))
                 .collect(Collectors.groupingBy(AvailableTime::getDate));
 
         var appointmentByDate = appointments.stream()
                 .collect(Collectors.groupingBy(AppointmentDetails::getStartDate));
 
-        Set<LocalDate> scheduledDates = new HashSet<>();
-        scheduledDates.addAll(appointmentByDate.keySet());
-        scheduledDates.addAll(availableTimeByDate.keySet());
-
+        Set<LocalDate> scheduledDates = getScheduledDates(availableTimeByDate, appointmentByDate);
         return scheduledDates.stream()
                 .map(date ->
                         buildCurrentDateScheduleDto(
@@ -76,8 +76,8 @@ public class ScheduleMapper {
         var firstAvailableTime = isEmpty(availableTimes) ? null : availableTimes.getFirst();
         var firstAppointment = isEmpty(appointments) ? null : appointments.getFirst();
 
-        Integer walkCount = firstAvailableTime == null ? 0 : firstAvailableTime.getDayLimit().getWalkCount();
-        String timeZone = firstAvailableTime == null ? firstAppointment.getTimezone() : firstAvailableTime.getTimezone();
+        Integer walkCount = getWalkCountFromFirstAvailableTime(firstAvailableTime);
+        String timeZone = getTimeZone(firstAvailableTime, firstAppointment);
         List<ScheduleTimeFrameDto> timeFrames = Lists.concat(
                 getTimeFrameFromAvailableTimes(availableTimes),
                 getTimeFrameFromAppointments(appointments, appointmentToPartnerMap)
@@ -97,15 +97,8 @@ public class ScheduleMapper {
         }
 
         return availableTimes.stream()
-                .map(time ->
-                        ScheduleTimeFrameDto.builder()
-                                .availableTimeId(time.getId())
-                                .timeFrom(time.getTimeFrom())
-                                .timeUntil(time.getTimeUntil())
-                                .availableTimeClubsInFilter(new ArrayList<>(time.getClubsInFilter()))
-                                .location(availableTimeMapper.toLocationDto(time.getLocation()))
-                                .build()
-                ).collect(Collectors.toList());
+                .map(this::getTimeFrameFromAvailableTime)
+                .collect(Collectors.toList());
     }
 
     private List<ScheduleTimeFrameDto> getTimeFrameFromAppointments(
@@ -117,22 +110,59 @@ public class ScheduleMapper {
         }
 
         return appointments.stream()
-                .filter(it -> it.getStatus().isShowInSchedule())
-                .map(appointment ->
-                        ScheduleTimeFrameDto.builder()
-                                .appointmentStatus(appointment.getStatus())
-                                .appointmentId(appointment.getId())
-                                .timeFrom(appointment.getStartsAt().toOffsetTime())
-                                .timeUntil(appointment.getStartsAt().toOffsetTime().plusSeconds(matcherProperties.getMinWalkTimeInSeconds()))
-                                .partnerId(appointmentToPartnerMap.get(appointment.getId()))
-                                .requesterId(appointment.getRequesterId())
-                                .location(
-                                        LocationDto.builder()
-                                                .longitude(appointment.getLongitude())
-                                                .latitude(appointment.getLatitude())
-                                                .build()
-                                )
+                .map(appointment -> getTimeFrameFromAppointment(appointment, appointmentToPartnerMap))
+                .collect(Collectors.toList());
+    }
+
+    private ScheduleTimeFrameDto getTimeFrameFromAvailableTime(AvailableTime time) {
+        return ScheduleTimeFrameDto.builder()
+                .availableTimeId(time.getId())
+                .timeFrom(time.getTimeFrom())
+                .timeUntil(time.getTimeUntil())
+                .availableTimeClubsInFilter(new ArrayList<>(time.getClubsInFilter()))
+                .location(availableTimeMapper.toLocationDto(time.getLocation()))
+                .build();
+    }
+
+    private ScheduleTimeFrameDto getTimeFrameFromAppointment(
+            AppointmentDetails appointment,
+            Map<UUID, UUID> appointmentToPartnerMap
+    ) {
+        return ScheduleTimeFrameDto.builder()
+                .appointmentStatus(appointment.getStatus())
+                .appointmentId(appointment.getId())
+                .timeFrom(appointment.getStartsAt().toOffsetTime())
+                .timeUntil(appointment.getStartsAt().toOffsetTime().plusSeconds(matcherProperties.getMinWalkTimeInSeconds()))
+                .partnerId(appointmentToPartnerMap.get(appointment.getId()))
+                .requesterId(appointment.getRequesterId())
+                .location(
+                        LocationDto.builder()
+                                .longitude(appointment.getLongitude())
+                                .latitude(appointment.getLatitude())
                                 .build()
-                ).collect(Collectors.toList());
+                )
+                .build();
+    }
+
+    private Set<LocalDate> getScheduledDates(
+            Map<LocalDate, List<AvailableTime>> timeByDate,
+            Map<LocalDate, List<AppointmentDetails>> appointmentsByDate
+    ) {
+        Set<LocalDate> dates = new HashSet<>();
+        dates.addAll(timeByDate.keySet());
+        dates.addAll(appointmentsByDate.keySet());
+        return dates;
+    }
+
+    private Integer getWalkCountFromFirstAvailableTime(AvailableTime firstAvailableTime) {
+        return Optional.ofNullable(firstAvailableTime)
+                .map(availableTime -> availableTime.getDayLimit().getWalkCount())
+                .orElse(0);
+    }
+
+    private String getTimeZone(AvailableTime firstAvailableTime, AppointmentDetails firstAppointment) {
+        return Optional.ofNullable(firstAvailableTime)
+                .map(AvailableTime::getTimezone)
+                .orElseGet(firstAppointment::getTimezone);
     }
 }

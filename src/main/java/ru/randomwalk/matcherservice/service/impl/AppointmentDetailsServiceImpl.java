@@ -32,6 +32,7 @@ import ru.randomwalk.matcherservice.service.util.TimeUtil;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -47,6 +48,11 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
     private final PersonService personService;
     private final Scheduler scheduler;
     private final MatcherProperties matcherProperties;
+
+    private static final List<String> STATUSES_NAMES_TO_NOT_SHOW_IN_SCHEDULE = Arrays.stream(AppointmentStatus.values())
+            .filter(status -> !status.isShowInSchedule())
+            .map(AppointmentStatus::name)
+            .toList();
 
     @Override
     @Transactional
@@ -130,6 +136,15 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
     public void changeStatus(UUID appointmentId, AppointmentStatus toStatus) {
         var appointment = getById(appointmentId);
         changeStatus(appointment, toStatus);
+    }
+
+    @Override
+    public List<AppointmentDetails> getAllNotPastAppointmentsForPersonSchedule(UUID personId) {
+        return appointmentDetailsRepository.getAllAppointmentsForPersonThatStartsAfterDateAndNotInStatuses(
+                personId,
+                LocalDate.now(),
+                STATUSES_NAMES_TO_NOT_SHOW_IN_SCHEDULE
+        );
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
