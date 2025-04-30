@@ -49,6 +49,11 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
     private final Scheduler scheduler;
     private final MatcherProperties matcherProperties;
 
+    private static final List<String> STATUSES_NAMES_TO_NOT_SHOW_IN_SCHEDULE = Arrays.stream(AppointmentStatus.values())
+            .filter(status -> !status.isShowInSchedule())
+            .map(AppointmentStatus::name)
+            .toList();
+
     @Override
     @Transactional
     public AppointmentDetails createAppointment(UUID personId, UUID partnerId, OffsetDateTime startsAt, Point approximateLocation) {
@@ -135,14 +140,10 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
 
     @Override
     public List<AppointmentDetails> getAllNotPastAppointmentsForPersonSchedule(UUID personId) {
-        List<AppointmentStatus> statusesToExclude = Arrays.stream(AppointmentStatus.values())
-                .filter(status -> !status.isShowInSchedule())
-                .toList();
-
         return appointmentDetailsRepository.getAllAppointmentsForPersonThatStartsAfterDateAndNotInStatuses(
                 personId,
                 LocalDate.now(),
-                statusesToExclude
+                STATUSES_NAMES_TO_NOT_SHOW_IN_SCHEDULE
         );
     }
 

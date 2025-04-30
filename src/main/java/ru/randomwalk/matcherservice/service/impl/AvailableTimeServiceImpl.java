@@ -65,6 +65,9 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
     public void addAvailableTime(AvailableTime availableTimeToCreate, UUID personId) {
         linkDayLimitToAvailableTime(availableTimeToCreate);
         var createdAvailableTime = availableTimeRepository.saveAndFlush(availableTimeToCreate);
+        Person person = personService.findById(personId);
+        person.getAvailableTimes().add(createdAvailableTime);
+
         log.info("AvailableTime {} were created", createdAvailableTime.getId());
         scheduleAppointmentManagementJob(createdAvailableTime);
     }
@@ -91,7 +94,11 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
             }
         }
 
+        Person person = personService.findById(availableTime.getPersonId());
         splitResult = availableTimeRepository.saveAll(splitResult);
+        person.getAvailableTimes().addAll(splitResult);
+
+        person.getAvailableTimes().remove(availableTime);
         availableTimeRepository.delete(availableTime);
 
         log.info("Split complete. Result: {}", splitResult);

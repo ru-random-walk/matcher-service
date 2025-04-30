@@ -25,11 +25,11 @@ public interface AppointmentDetailsRepository extends JpaRepository<AppointmentD
     List<UUID> getAppointmentPartnerIds(UUID appointmentId);
 
     @Query(value = """
-        select * from appointment_details as ad
+        select ad.* from appointment_details as ad
         inner join matcher.appointment a on ad.id = a.appointment_id
-        where ad.status not in :statusesToExclude
+        where ad.status::text not in :statusesToExclude
         and date(ad.starts_at at time zone 'UTC') >= :afterDate
         and a.person_id = :personId
     """, nativeQuery = true)
-    List<AppointmentDetails> getAllAppointmentsForPersonThatStartsAfterDateAndNotInStatuses(UUID personId, LocalDate afterDate, List<AppointmentStatus> statusesToExclude);
+    List<AppointmentDetails> getAllAppointmentsForPersonThatStartsAfterDateAndNotInStatuses(UUID personId, LocalDate afterDate, List<String> statusesToExclude);
 }
