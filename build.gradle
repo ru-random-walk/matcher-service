@@ -56,7 +56,7 @@ dependencies {
     implementation 'org.flywaydb:flyway-database-postgresql'
     implementation 'org.hibernate.orm:hibernate-spatial:6.6.1.Final'
     implementation group: 'org.mapstruct', name: 'mapstruct', version: '1.5.3.Final'
-    implementation 'ru.random.walk:event-exchange-contract:1.2.4'
+    implementation 'ru.random.walk:event-exchange-contract:1.2.6'
 
     compileOnly 'org.projectlombok:lombok:1.18.36'
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'

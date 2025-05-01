@@ -10,6 +10,7 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import ru.random.walk.dto.RegisteredUserInfoEvent;
+import ru.random.walk.topic.EventTopic;
 import ru.randomwalk.matcherservice.AbstractContainerTest;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
@@ -19,6 +20,7 @@ import ru.randomwalk.matcherservice.model.entity.Location;
 import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.repository.AvailableTimeRepository;
 import ru.randomwalk.matcherservice.repository.DayLimitRepository;
+import ru.randomwalk.matcherservice.repository.OutboxRepository;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
 import ru.randomwalk.matcherservice.service.PersonService;
@@ -51,6 +53,8 @@ class AppointmentDetailsServiceImplTest extends AbstractContainerTest {
     private MatcherProperties matcherProperties;
     @Autowired
     private PersonService personService;
+    @Autowired
+    private OutboxRepository outboxRepository;
 
     private final static Point location = GeometryUtil.createPoint(1.0, 2.0);
 
@@ -87,6 +91,8 @@ class AppointmentDetailsServiceImplTest extends AbstractContainerTest {
         assertEquals(1, second.getAvailableTimes().size());
         assertEquals(1, dayLimitRepository.findById(new DayLimit.DayLimitId(firstPersonId, requestedAppointment.getStartDate())).get().getWalkCount());
         assertEquals(1, dayLimitRepository.findById(new DayLimit.DayLimitId(secondPersonId, requestedAppointment.getStartDate())).get().getWalkCount());
+        var message = outboxRepository.findAll().get(0);
+        assertEquals(EventTopic.REQUESTED_APPOINTMENT_STATE, message.getTopic());
     }
 
     @Transactional
@@ -102,6 +108,8 @@ class AppointmentDetailsServiceImplTest extends AbstractContainerTest {
         appointmentDetailsService.rejectRequestedAppointment(requestedAppointment);
 
         assertEquals(AppointmentStatus.CANCELED, requestedAppointment.getStatus());
+        var message = outboxRepository.findAll().get(0);
+        assertEquals(EventTopic.REQUESTED_APPOINTMENT_STATE, message.getTopic());
     }
 
     private AvailableTime addAvailableTimeForPerson(UUID personId, Point point, LocalTime from, LocalTime to, Integer dayLimit) {
