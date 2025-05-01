@@ -14,24 +14,31 @@ import org.quartz.TriggerBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import ru.random.walk.dto.RequestedAppointmentStateEvent;
+import ru.random.walk.topic.EventTopic;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.dto.TimePeriod;
 import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
 import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
+import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.model.entity.projection.AppointmentPartner;
 import ru.randomwalk.matcherservice.model.exception.MatcherBadRequestException;
 import ru.randomwalk.matcherservice.model.exception.MatcherNotFoundException;
 import ru.randomwalk.matcherservice.repository.AppointmentDetailsRepository;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
+import ru.randomwalk.matcherservice.service.AvailableTimeService;
 import ru.randomwalk.matcherservice.service.DayLimitService;
+import ru.randomwalk.matcherservice.service.OutboxSenderService;
 import ru.randomwalk.matcherservice.service.PersonService;
 import ru.randomwalk.matcherservice.service.job.AppointmentStatusTransitionJob;
 import ru.randomwalk.matcherservice.service.util.TimeUtil;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -44,10 +51,12 @@ import java.util.UUID;
 public class AppointmentDetailsServiceImpl implements AppointmentDetailsService {
 
     private final AppointmentDetailsRepository appointmentDetailsRepository;
+    private final AvailableTimeService availableTimeService;
     private final DayLimitService dayLimitService;
     private final PersonService personService;
     private final Scheduler scheduler;
     private final MatcherProperties matcherProperties;
+    private final OutboxSenderService outboxSenderService;
 
     private static final List<String> STATUSES_NAMES_TO_NOT_SHOW_IN_SCHEDULE = Arrays.stream(AppointmentStatus.values())
             .filter(status -> !status.isShowInSchedule())
@@ -172,6 +181,50 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
         appointmentDetailsRepository.save(appointment);
     }
 
+    @Transactional
+    @Override
+    public void approveRequestedAppointment(AppointmentDetails appointment) {
+        checkAppointmentIsRequested(appointment);
+
+        List<Person> members = appointment.getMembers();
+        members.forEach(person -> replaceAvailableTimeWithAppointment(person, appointment));
+
+        changeStatus(appointment, AppointmentStatus.APPOINTED);
+        sendRequestedAppointmentState(appointment.getId(), true);
+    }
+
+    @Transactional
+    @Override
+    public void rejectRequestedAppointment(AppointmentDetails appointment) {
+        checkAppointmentIsRequested(appointment);
+        changeStatus(appointment, AppointmentStatus.CANCELED);
+        sendRequestedAppointmentState(appointment.getId(), false);
+    }
+
+    private void sendRequestedAppointmentState(UUID appointmentId, boolean isAccepted) {
+        log.info("Sending requested appointment state id: {}, accepted: {}", appointmentId, isAccepted);
+        var event = new RequestedAppointmentStateEvent(appointmentId, isAccepted);
+        outboxSenderService.sendMessage(EventTopic.REQUESTED_APPOINTMENT_STATE, event);
+    }
+
+    private void replaceAvailableTimeWithAppointment(Person person, AppointmentDetails appointment) {
+        OffsetTime startTime = appointment.getStartsAt().toOffsetTime();
+        TimePeriod appointmentPeriod = new TimePeriod(
+                startTime,
+                startTime.plusSeconds(matcherProperties.getMinWalkTimeInSeconds())
+        );
+        List<AvailableTime> availableTimes = new ArrayList<>(person.getAvailableTimes());
+        availableTimes.stream()
+                .filter(time -> time.getDate().equals(appointment.getStartDate()))
+                .forEach(time -> {
+                    var timePeriod = new TimePeriod(time.getTimeFrom(), time.getTimeUntil());
+                    var overlap = TimeUtil.getOverlappingInterval(timePeriod, appointmentPeriod);
+                    if (Objects.nonNull(overlap)) {
+                        availableTimeService.splitAvailableTime(time, overlap.from(), overlap.until());
+                    }
+                });
+    }
+
     private void restoreDayLimitForPartner(AppointmentDetails appointmentDetails, UUID initiatorId, List<UUID> participants) {
         participants.stream()
                 .filter(id -> !id.equals(initiatorId))
@@ -291,5 +344,11 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
     private OffsetDateTime calculateEndTime(OffsetDateTime appointmentStartTime) {
         return appointmentStartTime
                 .plusSeconds(matcherProperties.getMinWalkTimeInSeconds());
+    }
+
+    private void checkAppointmentIsRequested(AppointmentDetails appointment) {
+        if (appointment.getStatus() != AppointmentStatus.REQUESTED) {
+            throw new MatcherBadRequestException("Appointment is not requested");
+        }
     }
 }

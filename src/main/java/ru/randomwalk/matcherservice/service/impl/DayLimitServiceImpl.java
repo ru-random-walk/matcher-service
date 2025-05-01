@@ -30,6 +30,14 @@ public class DayLimitServiceImpl implements DayLimitService {
 
     @Override
     @Transactional
+    public void decrementDayLimitForPersonAndDate(UUID personId, LocalDate date) {
+        log.info("Decrementing day limit for {} at {}", personId, date);
+        var dayLimit = findExistingDayLimitWithLock(personId, date);
+        dayLimit.decrementWalkCount();
+    }
+
+    @Override
+    @Transactional
     public int getCurrentWalkCountForAvailableTime(AvailableTime availableTime) {
         if (Hibernate.isInitialized(availableTime.getDayLimit())) {
             return availableTime.getDayLimit().getWalkCount();
@@ -54,6 +62,12 @@ public class DayLimitServiceImpl implements DayLimitService {
     private DayLimit findExistingDayLimitWithLock(UUID personId, LocalDate date) {
         return dayLimitRepository
                 .findByIdWithLock(new DayLimit.DayLimitId(personId, date))
-                .orElseThrow(() -> new MatcherNotFoundException("DayLimit does not exist"));
+                .orElseGet(() -> createNewDayLimit(personId, date));
+    }
+
+    private DayLimit createNewDayLimit(UUID personId, LocalDate date) {
+        DayLimit dayLimit = new DayLimit();
+        dayLimit.setDayLimitId(new DayLimit.DayLimitId(personId, date));
+        return dayLimitRepository.save(dayLimit);
     }
 }
