@@ -6,9 +6,9 @@ import lombok.Builder;
 @Builder
 public record LocationDto(
         @NotNull
-        Double longitude,
+        double longitude,
         @NotNull
-        Double latitude,
+        double latitude,
         @NotNull
         String city,
         @NotNull

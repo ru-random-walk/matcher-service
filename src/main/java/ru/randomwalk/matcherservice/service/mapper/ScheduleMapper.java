@@ -12,7 +12,6 @@ import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.model.entity.projection.AppointmentPartner;
-import ru.randomwalk.matcherservice.repository.AppointmentDetailsRepository;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
 
 import java.time.LocalDate;
@@ -49,12 +48,13 @@ public class ScheduleMapper {
                 .collect(Collectors.groupingBy(AppointmentDetails::getStartDate));
 
         Set<LocalDate> scheduledDates = getScheduledDates(availableTimeByDate, appointmentByDate);
+        Map<UUID, UUID> appointmentIdPartnerMap = getAppointmentToPartnerMap(person.getId(), appointments);
         return scheduledDates.stream()
                 .map(date ->
                         buildCurrentDateScheduleDto(
                                 availableTimeByDate.get(date),
                                 appointmentByDate.get(date),
-                                getAppointmentToPartnerMap(person.getId(), appointments),
+                                appointmentIdPartnerMap,
                                 date
                         )
                 )
@@ -163,6 +163,6 @@ public class ScheduleMapper {
     private String getTimeZone(AvailableTime firstAvailableTime, AppointmentDetails firstAppointment) {
         return Optional.ofNullable(firstAvailableTime)
                 .map(AvailableTime::getTimezone)
-                .orElseGet(firstAppointment::getTimezone);
+                .orElseGet(() -> firstAppointment.getTimezone());
     }
 }
