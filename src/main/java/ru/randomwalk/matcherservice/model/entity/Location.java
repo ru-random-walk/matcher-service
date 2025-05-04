@@ -23,10 +23,16 @@ public class Location {
     private String building;
 
     public double getLongitude() {
+        if (point == null) {
+            return 0.0;
+        }
         return GeometryUtil.getLongitude(point);
     }
 
     public double getLatitude() {
+        if (point == null) {
+            return 0.0;
+        }
         return GeometryUtil.getLatitude(point);
     }
 }

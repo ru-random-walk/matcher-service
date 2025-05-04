@@ -1,6 +1,7 @@
 package ru.randomwalk.matcherservice.model.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -13,6 +14,7 @@ import java.util.UUID;
 
 public record AvailableTimeModifyDto(
         @NotNull
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         LocalDate date,
         @NotNull
         @Schema(example = "01:30:00.000+03:00")
@@ -23,6 +25,7 @@ public record AvailableTimeModifyDto(
         @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
         OffsetTime timeUntil,
         @NotNull
+        @Valid
         LocationDto location,
         List<UUID> clubsInFilter
 ) {
