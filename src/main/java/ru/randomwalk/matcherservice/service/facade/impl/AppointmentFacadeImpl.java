@@ -73,9 +73,9 @@ public class AppointmentFacadeImpl implements AppointmentFacade {
     private void checkPersonHasRightsToApproveAppointment(AppointmentDetails appointment, UUID personId) {
         boolean isMember = appointment.getMembers().stream()
                 .anyMatch(person -> Objects.equals(person.getId(), personId));
-        boolean isNotRequester = appointment.getRequesterId() != personId;
+        boolean isRequester = Objects.equals(appointment.getRequesterId(), personId);
 
-        if (!isMember || isNotRequester) {
+        if (!isMember || isRequester) {
             throw new MatcherForbiddenException("You cannot approve this appointment");
         }
     }
