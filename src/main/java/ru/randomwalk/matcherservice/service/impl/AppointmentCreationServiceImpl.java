@@ -58,7 +58,7 @@ public class AppointmentCreationServiceImpl implements AppointmentCreationServic
         List<AvailableTime> initialTimeSplit = availableTimeService.splitAvailableTime(availableTime, startTime, walkEndTime);
         List<AvailableTime> matchingTimeSplit = availableTimeService.splitAvailableTime(matchingTime, startTime, walkEndTime);
 
-        return new AppointmentCreationResultDto(appointment, initialTimeSplit, matchingTimeSplit);
+        return new AppointmentCreationResultDto(appointment, initialTimeSplit, matchingTimeSplit, personId, partnerId);
     }
 
     @Override
