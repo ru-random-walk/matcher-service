@@ -38,6 +38,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
+import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -50,9 +52,6 @@ import static ru.randomwalk.matcherservice.model.enam.AppointmentStatus.IN_PROGR
 @ActiveProfiles("local")
 @ExtendWith(MockitoExtension.class)
 class AppointmentManagementJobTest extends AbstractContainerTest {
-
-    @Autowired
-    private AppointmentDetailsService appointmentDetailsService;
 
     @Autowired
     private PersonService personService;
@@ -74,6 +73,14 @@ class AppointmentManagementJobTest extends AbstractContainerTest {
                 Arguments.of(LocalTime.of(8, 30), LocalTime.of(19, 0), LocalTime.of(18, 0), LocalTime.of(19, 0)),
                 Arguments.of(LocalTime.of(8, 30), LocalTime.of(10, 0), LocalTime.of(7, 0), LocalTime.of(10, 0)),
                 Arguments.of(LocalTime.of(8, 30), LocalTime.of(9, 30), LocalTime.of(8, 30), LocalTime.of(9, 30))
+        );
+    }
+
+    private static Stream<Arguments> provideTimeSlotsWithDifferentFilters() {
+        return Stream.of(
+                Arguments.of(LocalTime.of(8, 30), LocalTime.of(19, 0), LocalTime.of(18, 0), LocalTime.of(19, 0), List.of(UUID.randomUUID()), List.of()),
+                Arguments.of(LocalTime.of(8, 30), LocalTime.of(10, 0), LocalTime.of(7, 0), LocalTime.of(10, 0), List.of(), List.of(UUID.randomUUID())),
+                Arguments.of(LocalTime.of(8, 30), LocalTime.of(9, 30), LocalTime.of(8, 30), LocalTime.of(9, 30), List.of(UUID.randomUUID(), UUID.randomUUID()), List.of(UUID.randomUUID()))
         );
     }
 
@@ -107,10 +114,12 @@ class AppointmentManagementJobTest extends AbstractContainerTest {
         //given
         var personId = UUID.randomUUID();
         var partnerId = UUID.randomUUID();
+        List<UUID> personClubs = List.of(UUID.randomUUID(), UUID.randomUUID());
+        List<UUID> partnersClubs = List.of(UUID.randomUUID(), personClubs.getFirst(), UUID.randomUUID());
         personService.addNewPerson(new RegisteredUserInfoEvent(personId, "initial"));
         personService.addNewPerson(new RegisteredUserInfoEvent(partnerId, "partner"));
-        AvailableTime initialTime = addAvailableTimeForPerson(personId, location1, personFrom, personUntil, null);
-        addAvailableTimeForPerson(partnerId, location2, partnerFrom, partnerUntil, null);
+        AvailableTime initialTime = addAvailableTimeForPerson(personId, location1, personFrom, personUntil, null, personClubs);
+        addAvailableTimeForPerson(partnerId, location2, partnerFrom, partnerUntil, null, partnersClubs);
         var context = Mockito.mock(JobExecutionContext.class);
         when(context.getJobDetail()).thenReturn(getDetail(initialTime.getId(), personId));
 
@@ -143,8 +152,8 @@ class AppointmentManagementJobTest extends AbstractContainerTest {
         var partnerId = UUID.randomUUID();
         personService.addNewPerson(new RegisteredUserInfoEvent(personId, "initial"));
         personService.addNewPerson(new RegisteredUserInfoEvent(partnerId, "partner"));
-        AvailableTime initialTime = addAvailableTimeForPerson(personId, location1, personFrom, personUntil, 100);
-        addAvailableTimeForPerson(partnerId, location2, partnerFrom, partnerUntil, 100);
+        AvailableTime initialTime = addAvailableTimeForPerson(personId, location1, personFrom, personUntil, 100, List.of());
+        addAvailableTimeForPerson(partnerId, location2, partnerFrom, partnerUntil, 100, List.of());
         var context = Mockito.mock(JobExecutionContext.class);
         when(context.getJobDetail()).thenReturn(getDetail(initialTime.getId(), personId));
 
@@ -156,6 +165,39 @@ class AppointmentManagementJobTest extends AbstractContainerTest {
         var partner = personService.findById(partnerId);
         assertEquals(expectedCreatedAppointmentsCount, person.getAppointments().size());
         assertEquals(expectedCreatedAppointmentsCount, partner.getAppointments().size());
+    }
+
+    @ParameterizedTest
+    @Transactional
+    @Rollback
+    @MethodSource("provideTimeSlotsWithDifferentFilters")
+    void checkThatAppointmentCannotBeCreated_GroupFiltersAreDifferent(
+            LocalTime personFrom,
+            LocalTime personUntil,
+            LocalTime partnerFrom,
+            LocalTime partnerUntil,
+            List<UUID> personClubs,
+            List<UUID> partnerClubs
+    ) throws JobExecutionException {
+        //given
+        var personId = UUID.randomUUID();
+        var partnerId = UUID.randomUUID();
+        personService.addNewPerson(new RegisteredUserInfoEvent(personId, "initial"));
+        personService.addNewPerson(new RegisteredUserInfoEvent(partnerId, "partner"));
+        AvailableTime initialTime = addAvailableTimeForPerson(personId, location1, personFrom, personUntil, null, personClubs);
+        addAvailableTimeForPerson(partnerId, location2, partnerFrom, partnerUntil, null, partnerClubs);
+        var context = Mockito.mock(JobExecutionContext.class);
+        when(context.getJobDetail()).thenReturn(getDetail(initialTime.getId(), personId));
+
+        //when
+        job.execute(context);
+
+        //then
+        var person = personService.findById(personId);
+        var partner = personService.findById(partnerId);
+        var appointments = person.getAppointments();
+        assertEquals(0, appointments.size());
+        assertEquals(0, partner.getAppointments().size());
     }
 
     @ParameterizedTest
@@ -173,8 +215,8 @@ class AppointmentManagementJobTest extends AbstractContainerTest {
         var partnerId = UUID.randomUUID();
         personService.addNewPerson(new RegisteredUserInfoEvent(personId, "initial"));
         personService.addNewPerson(new RegisteredUserInfoEvent(partnerId, "partner"));
-        AvailableTime initialTime = addAvailableTimeForPerson(personId, location1, personFrom, personUntil, null);
-        addAvailableTimeForPerson(partnerId, location2, partnerFrom, partnerUntil, null);
+        AvailableTime initialTime = addAvailableTimeForPerson(personId, location1, personFrom, personUntil, null, List.of());
+        addAvailableTimeForPerson(partnerId, location2, partnerFrom, partnerUntil, null, List.of());
         var context = Mockito.mock(JobExecutionContext.class);
         when(context.getJobDetail()).thenReturn(getDetail(initialTime.getId(), personId));
 
@@ -189,7 +231,7 @@ class AppointmentManagementJobTest extends AbstractContainerTest {
         assertEquals(0, partner.getAppointments().size());
     }
 
-    private AvailableTime addAvailableTimeForPerson(UUID personId, Point point, LocalTime from, LocalTime to, Integer dayLimit) {
+    private AvailableTime addAvailableTimeForPerson(UUID personId, Point point, LocalTime from, LocalTime to, Integer dayLimit, List<UUID> clubs) {
         AvailableTime availableTime = new AvailableTime();
 
         availableTime.setDate(LocalDate.now());
@@ -197,6 +239,7 @@ class AppointmentManagementJobTest extends AbstractContainerTest {
         availableTime.setTimeUntil(OffsetTime.of(to, ZoneOffset.UTC));
         availableTime.setTimezone(ZoneOffset.UTC.getId());
         availableTime.setPersonId(personId);
+        availableTime.setClubsInFilter(new HashSet<>(clubs));
 
         if (dayLimit != null) {
             DayLimit limit = new DayLimit();

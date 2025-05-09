@@ -1,22 +1,17 @@
 package ru.randomwalk.matcherservice.repository;
 
 
-import jakarta.persistence.QueryHint;
-import org.hibernate.jpa.AvailableHints;
 import org.locationtech.jts.geom.Point;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 public interface AvailableTimeRepository extends JpaRepository<AvailableTime, UUID> {
 

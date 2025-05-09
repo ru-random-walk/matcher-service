@@ -87,4 +87,13 @@ public class AvailableTime {
         this.searchAreaInMeters = requireNonNullElse(searchAreaInMeters, DEFAULT_SEARCH_AREA_IN_METERS);
     }
 
+    public String getShortInfo() {
+        return "AvailableTime{" +
+                "id=" + id +
+                ", personId=" + personId +
+                ", timeFrom=" + timeFrom +
+                ", timeUntil=" + timeUntil +
+                ", date=" + date +
+                '}';
+    }
 }

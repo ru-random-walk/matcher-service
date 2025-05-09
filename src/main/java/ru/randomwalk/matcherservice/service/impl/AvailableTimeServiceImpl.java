@@ -63,12 +63,13 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
     @Override
     @Transactional
     public void addAvailableTime(AvailableTime availableTimeToCreate, UUID personId) {
+        log.info("Adding new available time for {} at {} {}", personId, availableTimeToCreate.getDate(), availableTimeToCreate.getTimeFrom());
         linkDayLimitToAvailableTime(availableTimeToCreate);
         var createdAvailableTime = availableTimeRepository.saveAndFlush(availableTimeToCreate);
         Person person = personService.findById(personId);
         person.getAvailableTimes().add(createdAvailableTime);
 
-        log.info("AvailableTime {} were created", createdAvailableTime.getId());
+        log.info("AvailableTime {} were created for {}", createdAvailableTime.getId(), personId);
         scheduleAppointmentManagementJob(createdAvailableTime);
     }
 
@@ -172,7 +173,7 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
                 .collect(Collectors.toMap(AvailableTime::getId, time -> personById.get(time.getPersonId())));
     }
 
-    private boolean filterGroups(AvailableTime availableTimeToFindMatches, AvailableTime matchingTime, Map<UUID, Person> personMap) {
+    private boolean filterGroups(AvailableTime availableTimeToFindMatches, AvailableTime matchingTime, Map<UUID, Person> personByTimeMap) {
         Set<UUID> groupsInFilter = availableTimeToFindMatches.getClubsInFilter();
         Set<UUID> matchingTimeGroupsInFilter = matchingTime.getClubsInFilter();
 
@@ -181,17 +182,19 @@ public class AvailableTimeServiceImpl implements AvailableTimeService {
         }
 
         if (!groupsInFilter.isEmpty()) {
-            return personMap.get(matchingTime.getPersonId()).getClubs().stream()
+            return personByTimeMap.get(matchingTime.getId()).getClubs().stream()
                     .map(Club::getClubId)
                     .anyMatch(groupsInFilter::contains);
         }
 
-        return true;
+        return matchingTimeGroupsInFilter.isEmpty();
     }
 
     private void linkDayLimitToAvailableTime(AvailableTime availableTime) {
+        log.info("Linking day limit to available time of person:{}", availableTime.getPersonId());
         var dayLimit = getOrCreateDayLimit(availableTime.getPersonId(), availableTime.getDate());
         availableTime.setDayLimit(dayLimit);
+        log.info("Day limit is linked");
     }
 
 
