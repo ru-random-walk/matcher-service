@@ -42,8 +42,8 @@ public class AppointmentCreationServiceImpl implements AppointmentCreationServic
         UUID personId = availableTime.getPersonId();
         UUID partnerId = matchingTime.getPersonId();
         log.info(
-                "Creating appointment for people: {} with availableTimeId={} and {} with availableTimeId={}",
-                personId, partnerId, availableTime.getId(), matchingTime.getId()
+                "Creating appointment for people: {} and {} with availableTimesId: {} and {}",
+                personId, partnerId, availableTime.getShortInfo(), matchingTime.getShortInfo()
         );
 
         OffsetTime walkEndTime = calculateWalkEndTime(startTime);
