@@ -19,6 +19,10 @@ public interface DayLimitRepository extends JpaRepository<DayLimit, DayLimit.Day
     Optional<DayLimit> findByIdWithLock(DayLimit.DayLimitId dayLimitId);
 
     @Modifying
-    @Query("delete from DayLimit where dayLimitId.date < :date")
+    @Query(value = """
+            delete from DAY_LIMIT dl
+            where (dl.date at time zone 'UTC')::date < (:date at time zone 'UTC')::date
+            """,
+            nativeQuery = true)
     int deleteAllByDateBefore(LocalDate date);
 }

@@ -34,6 +34,10 @@ public interface AvailableTimeRepository extends JpaRepository<AvailableTime, UU
     );
 
     @Modifying
-    @Query("delete from AvailableTime at where at.date < :date")
+    @Query(value = """
+            delete from AVAILABLE_TIME at
+            where (at.date at time zone 'UTC')::date < (:date at time zone 'UTC')::date
+            """,
+            nativeQuery = true)
     int deleteAllByDateBefore(LocalDate date);
 }
