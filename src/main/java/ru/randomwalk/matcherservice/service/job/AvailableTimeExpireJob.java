@@ -24,7 +24,7 @@ public class AvailableTimeExpireJob implements Job {
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         LocalDate currentDate = LocalDate.now();
-        log.info("Starting AvailableTimeExpireJob. Deleting all available times before {}", currentDate);
+        log.info("Starting AvailableTimeExpireJob. Deleting all available times before {} in UTC", currentDate);
 
         int availableTimeDeleted = availableTimeRepository.deleteAllByDateBefore(currentDate);
         int dayLimitDeleted = dayLimitRepository.deleteAllByDateBefore(currentDate);
