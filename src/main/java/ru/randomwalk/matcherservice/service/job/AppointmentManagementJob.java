@@ -10,6 +10,7 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.random.walk.dto.CreatePrivateChatEvent;
+import ru.random.walk.dto.SendNotificationEvent;
 import ru.random.walk.topic.EventTopic;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.dto.AppointmentCreationResultDto;
@@ -20,15 +21,19 @@ import ru.randomwalk.matcherservice.service.AppointmentCreationService;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
 import ru.randomwalk.matcherservice.service.DayLimitService;
 import ru.randomwalk.matcherservice.service.OutboxSenderService;
+import ru.randomwalk.matcherservice.service.util.NotificationConstants;
 import ru.randomwalk.matcherservice.service.util.TimeUtil;
 
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -65,16 +70,19 @@ public class AppointmentManagementJob implements Job {
         List<AvailableTime> matchingAvailableTimes = availableTimeService.findMatchesForAvailableTime(availableTimeToMatch);
         log.info("Found {} matching times for available time {}", matchingAvailableTimes.size(), availableTimeId);
 
-        List<UUID> partnerIds = createAppointmentsAndGetPartnerIds(availableTimeToMatch, matchingAvailableTimes);
-        createChatsWithPartners(personId, partnerIds);
+        var creationResults = createAppointmentsAndGetPartnerIds(availableTimeToMatch, matchingAvailableTimes);
+        createChatsWithPartners(personId, getUniquePartners(creationResults));
+        notifyPeopleAboutAppointment(personId, creationResults);
     }
 
-    private List<UUID> createAppointmentsAndGetPartnerIds(AvailableTime initialAvailableTime, List<AvailableTime> matchingAvailableTimes) {
+    private List<AppointmentCreationResultDto> createAppointmentsAndGetPartnerIds(
+            AvailableTime initialAvailableTime,
+            List<AvailableTime> matchingAvailableTimes
+    ) {
         Queue<AvailableTime> availableTimes = new ArrayDeque<>();
         availableTimes.add(initialAvailableTime);
 
-        List<AppointmentDetails> appointments = new ArrayList<>();
-        List<UUID> partnerIds = new ArrayList<>();
+        List<AppointmentCreationResultDto> results = new ArrayList<>();
         while (!availableTimes.isEmpty()) {
             var availableTime = availableTimes.poll();
             for (var matchingTime : matchingAvailableTimes) {
@@ -84,14 +92,12 @@ public class AppointmentManagementJob implements Job {
                 tryToCreateAppointment(availableTime, matchingTime)
                         .ifPresent(result -> {
                             availableTimes.addAll(result.initialAvailableTimeSplit());
-                            appointments.add(result.appointmentDetails());
-                            partnerIds.add(matchingTime.getPersonId());
+                            results.add(result);
                         });
             }
         }
-
-        log.info("{} appointments with {} partners were scheduled for person {}", appointments.size(), partnerIds.size(), initialAvailableTime.getPersonId());
-        return partnerIds;
+        log.info("{} appointments were scheduled for person {}", results.size(), initialAvailableTime.getPersonId());
+        return results;
     }
 
     private Optional<AppointmentCreationResultDto> tryToCreateAppointment(AvailableTime availableTime, AvailableTime matchingTime) {
@@ -117,11 +123,68 @@ public class AppointmentManagementJob implements Job {
         return Optional.empty();
     }
 
-    private void createChatsWithPartners(UUID personId, List<UUID> partners) {
-        for (var partnerId : partners) {
-            log.info("Creating chat between {} and {}", personId, partnerId);
-            outboxSenderService.sendMessage(EventTopic.CREATE_CHAT, new CreatePrivateChatEvent(personId, partnerId));
+    private void createChatsWithPartners(UUID personId, Set<UUID> partners) {
+        var events = partners.stream()
+                .map(partner -> new CreatePrivateChatEvent(personId, partner))
+                .toList();
+        outboxSenderService.sendBatchOfMessages(EventTopic.CREATE_CHAT, events);
+        log.info("{} chats were created", partners.size());
+    }
+
+    private void notifyPeopleAboutAppointment(UUID initialPersonId, List<AppointmentCreationResultDto> creationResults) {
+        var resultsByPeople = getAppointmentResultsByPersonIdMap(initialPersonId, creationResults);
+        var notifications = resultsByPeople.entrySet().stream()
+                .map(this::getNotificationForPerson)
+                .toList();
+        outboxSenderService.sendBatchOfMessages(EventTopic.SEND_NOTIFICATION, notifications);
+    }
+
+    private Map<UUID, List<AppointmentCreationResultDto>> getAppointmentResultsByPersonIdMap(
+            UUID initialPersonId,
+            List<AppointmentCreationResultDto> creationResults
+    ) {
+        Map<UUID, List<AppointmentCreationResultDto>> resultsByPeople = creationResults.stream()
+                .collect(Collectors.groupingBy(AppointmentCreationResultDto::partnerId));
+
+        if (!creationResults.isEmpty()) {
+            resultsByPeople.put(initialPersonId, creationResults);
         }
+
+        return resultsByPeople;
+    }
+
+    private SendNotificationEvent getNotificationForPerson(Map.Entry<UUID, List<AppointmentCreationResultDto>> entry) {
+        UUID personId = entry.getKey();
+        List<AppointmentCreationResultDto> appointmentsForPerson = entry.getValue();
+        if (appointmentsForPerson.size() > 1) {
+            return getGroupedNotification(personId, appointmentsForPerson);
+        } else {
+            AppointmentCreationResultDto singleAppointment = appointmentsForPerson.getFirst();
+            return getSingleNotification(personId, singleAppointment.appointmentDetails());
+        }
+    }
+
+    private SendNotificationEvent getGroupedNotification(UUID personId, List<AppointmentCreationResultDto> appointments) {
+        return new SendNotificationEvent(
+                personId,
+                String.format("%d new walks have been appointed for you!", appointments.size()),
+                "Hurry up to get acquainted with your schedule!"
+        );
+    }
+
+    private SendNotificationEvent getSingleNotification(UUID personId, AppointmentDetails appointmentDetails) {
+        return new SendNotificationEvent(
+                personId,
+                "New walk has been appointed!",
+                String.format("New walk was appointed at %s! See details...", appointmentDetails.getStartsAt().toString()),
+                Map.of(NotificationConstants.APPOINTMENT_ARG_NAME, appointmentDetails.getId().toString())
+        );
+    }
+
+    private Set<UUID> getUniquePartners(List<AppointmentCreationResultDto> creationResults) {
+        return creationResults.stream()
+                .map(AppointmentCreationResultDto::partnerId)
+                .collect(Collectors.toSet());
     }
 
     private TimePeriod getOverlap(AvailableTime first, AvailableTime second) {

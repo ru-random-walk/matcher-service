@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.random.walk.dto.RequestedAppointmentStateEvent;
+import ru.random.walk.dto.SendNotificationEvent;
 import ru.random.walk.topic.EventTopic;
 import ru.randomwalk.matcherservice.config.MatcherProperties;
 import ru.randomwalk.matcherservice.model.dto.TimePeriod;
@@ -32,6 +33,7 @@ import ru.randomwalk.matcherservice.service.DayLimitService;
 import ru.randomwalk.matcherservice.service.OutboxSenderService;
 import ru.randomwalk.matcherservice.service.PersonService;
 import ru.randomwalk.matcherservice.service.job.AppointmentStatusTransitionJob;
+import ru.randomwalk.matcherservice.service.util.NotificationConstants;
 import ru.randomwalk.matcherservice.service.util.TimeUtil;
 
 import java.time.LocalDate;
@@ -42,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -191,6 +194,7 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
 
         changeStatus(appointment, AppointmentStatus.APPOINTED);
         sendRequestedAppointmentState(appointment.getId(), true);
+        notifyRequesterAboutAppointmentApprove(appointment);
     }
 
     @Transactional
@@ -205,6 +209,16 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
         log.info("Sending requested appointment state id: {}, accepted: {}", appointmentId, isAccepted);
         var event = new RequestedAppointmentStateEvent(appointmentId, isAccepted);
         outboxSenderService.sendMessage(EventTopic.REQUESTED_APPOINTMENT_STATE, event);
+    }
+
+    private void notifyRequesterAboutAppointmentApprove(AppointmentDetails appointmentDetails) {
+        var notification = new SendNotificationEvent(
+                appointmentDetails.getRequesterId(),
+                "Your walk request was approved!",
+                String.format("Your walk starts at %s", appointmentDetails.getStartsAt()),
+                Map.of(NotificationConstants.APPOINTMENT_ARG_NAME, appointmentDetails.getId().toString())
+        );
+        outboxSenderService.sendMessage(EventTopic.SEND_NOTIFICATION, notification);
     }
 
     private void replaceAvailableTimeWithAppointment(Person person, AppointmentDetails appointment) {
