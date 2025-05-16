@@ -30,11 +30,10 @@ public class AvailableTimeExpireJob implements Job {
     @Transactional
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        ZonedDateTime nowUtc = ZonedDateTime.now(ZoneId.of("UTC"));
-        int currentHourUtc = nowUtc.getHour();
-        log.info("Starting AvailableTimeExpireJob. Deleting all available times before {} UTC", nowUtc);
+        LocalDateTime deleteFrom = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1).toLocalDateTime();
+        log.info("Starting AvailableTimeExpireJob. Deleting all available times before {} UTC", deleteFrom);
 
-        List<AvailableTime> availableTimesToDelete = availableTimeRepository.selectAllByDateBefore(nowUtc.toLocalDate(), currentHourUtc);
+        List<AvailableTime> availableTimesToDelete = availableTimeRepository.selectAllByDateBefore(deleteFrom);
         List<DayLimit.DayLimitId> dayLimitIdsToDelete = getDayLimitIdsFromAvailableTimes(availableTimesToDelete);
         List<DayLimit> dayLimitsToDelete = dayLimitRepository.findAllById(dayLimitIdsToDelete);
 

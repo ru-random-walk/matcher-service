@@ -36,9 +36,8 @@ public interface AvailableTimeRepository extends JpaRepository<AvailableTime, UU
 
     @Query(value = """
             select * from AVAILABLE_TIME at
-            where at.date < :currentDate
-            and (extract(HOUR from at.date at time zone at.timezone)::integer) % 24 <= :currentHour;
+            where (at.date at time zone at.timezone) <= (:dateTimeFrom at time zone 'UTC')
             """,
             nativeQuery = true)
-    List<AvailableTime> selectAllByDateBefore(LocalDate currentDate, int currentHour);
+    List<AvailableTime> selectAllByDateBefore(LocalDateTime dateTimeFrom);
 }
