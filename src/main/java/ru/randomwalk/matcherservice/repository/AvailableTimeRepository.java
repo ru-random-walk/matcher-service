@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetTime;
 import java.util.List;
 import java.util.UUID;
@@ -33,7 +34,10 @@ public interface AvailableTimeRepository extends JpaRepository<AvailableTime, UU
             @Param("timeUntil") OffsetTime timeUntil
     );
 
-    @Modifying
-    @Query("delete from AvailableTime at where at.date < :date")
-    int deleteAllByDateBefore(LocalDate date);
+    @Query(value = """
+            select * from AVAILABLE_TIME at
+            where (at.date at time zone at.timezone) <= (:dateTimeFrom at time zone 'UTC')
+            """,
+            nativeQuery = true)
+    List<AvailableTime> selectAllByDateBefore(LocalDateTime dateTimeFrom);
 }

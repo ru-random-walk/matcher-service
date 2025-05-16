@@ -19,8 +19,8 @@ import java.util.TimeZone;
 @RequiredArgsConstructor
 public class AvailableTimeExpireJobConfig {
 
-    // Каждый день в 00:00
-    private static final String JOB_TRIGGER_CRON = "0 0 0 * * ?";
+    // Каждый час
+    private static final String JOB_TRIGGER_CRON = "0 0 * * * ?";
 
     @Bean
     public JobDetail availableTimeExpireJobDetail() {
