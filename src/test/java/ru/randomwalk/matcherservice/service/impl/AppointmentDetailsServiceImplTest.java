@@ -66,7 +66,7 @@ class AppointmentDetailsServiceImplTest extends AbstractContainerTest {
         UUID secondPersonId = UUID.randomUUID();
         personService.addNewPerson(RegisteredUserInfoEvent.builder().id(firstPersonId).build());
         personService.addNewPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
-        var requestedAppointment = appointmentDetailsService.requestForAppointment(firstPersonId, secondPersonId, OffsetDateTime.now(ZoneId.of("UTC")), location);
+        var requestedAppointment = appointmentDetailsService.requestForAppointment(firstPersonId, secondPersonId, OffsetDateTime.of(LocalDate.now(), LocalTime.of(12, 0), ZoneOffset.UTC), location);
         addAvailableTimeForPerson(
                 firstPersonId,
                 location,
@@ -103,7 +103,7 @@ class AppointmentDetailsServiceImplTest extends AbstractContainerTest {
         UUID secondPersonId = UUID.randomUUID();
         personService.addNewPerson(RegisteredUserInfoEvent.builder().id(firstPersonId).build());
         personService.addNewPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
-        var requestedAppointment = appointmentDetailsService.requestForAppointment(firstPersonId, secondPersonId, OffsetDateTime.now(ZoneId.of("UTC")), location);
+        var requestedAppointment = appointmentDetailsService.requestForAppointment(firstPersonId, secondPersonId, OffsetDateTime.of(LocalDate.now(), LocalTime.of(12, 0), ZoneOffset.UTC), location);
 
         appointmentDetailsService.rejectRequestedAppointment(requestedAppointment);
 

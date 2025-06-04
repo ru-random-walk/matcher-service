@@ -26,6 +26,8 @@ import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
 import ru.randomwalk.matcherservice.service.PersonService;
 import ru.randomwalk.matcherservice.service.util.GeometryUtil;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
@@ -116,13 +118,14 @@ class AppointmentStatusTransitionJobTest extends AbstractContainerTest {
         UUID requesterId = UUID.randomUUID();
         UUID secondPersonId = UUID.randomUUID();
         UUID personId = UUID.randomUUID();
+        var time = OffsetDateTime.of(LocalDate.now(), LocalTime.of(12, 0), ZoneOffset.UTC);
         personService.addNewPerson(RegisteredUserInfoEvent.builder().id(requesterId).build());
         personService.addNewPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
         personService.addNewPerson(RegisteredUserInfoEvent.builder().id(personId).build());
-        var requestedAppointment = appointmentDetailsService.requestForAppointment(requesterId, secondPersonId, OffsetDateTime.now().minusDays(1), GeometryUtil.createPoint(1.0, 2.0));
+        var requestedAppointment = appointmentDetailsService.requestForAppointment(requesterId, secondPersonId, time, GeometryUtil.createPoint(1.0, 2.0));
 
         //when
-        var newAppointment = appointmentDetailsService.createAppointment(personId, secondPersonId, OffsetDateTime.now().minusDays(1), GeometryUtil.createPoint(1.0, 2.0));
+        var newAppointment = appointmentDetailsService.createAppointment(personId, secondPersonId, time, GeometryUtil.createPoint(1.0, 2.0));
 
         //then
         var cancelledAppointment = appointmentDetailsService.getById(requestedAppointment.getId());

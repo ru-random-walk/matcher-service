@@ -18,7 +18,7 @@ public class MatcherControllerAdvice {
     @ExceptionHandler({MatcherBadRequestException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ApiErrorDto> exceptionHandler(MatcherBadRequestException e) {
-        log.debug("Handle bad request exception", e);
+        log.warn("Handle bad request exception", e);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiErrorDto(e.getMessage()));
     }
@@ -26,7 +26,7 @@ public class MatcherControllerAdvice {
     @ExceptionHandler({MatcherNotFoundException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ResponseEntity<ApiErrorDto> exceptionHandler(MatcherNotFoundException e) {
-        log.debug("Not found exception", e);
+        log.warn("Not found exception", e);
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ApiErrorDto(e.getMessage()));
     }
@@ -34,7 +34,7 @@ public class MatcherControllerAdvice {
     @ExceptionHandler({MatcherForbiddenException.class})
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ResponseEntity<ApiErrorDto> exceptionHandler(MatcherForbiddenException e) {
-        log.debug("Forbidden exception", e);
+        log.warn("Forbidden exception", e);
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiErrorDto(e.getMessage()));
     }
