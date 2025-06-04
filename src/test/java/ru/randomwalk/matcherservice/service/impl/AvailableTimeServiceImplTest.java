@@ -1,9 +1,7 @@
 package ru.randomwalk.matcherservice.service.impl;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.locationtech.jts.geom.Point;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
@@ -16,7 +14,6 @@ import ru.randomwalk.matcherservice.model.dto.LocationDto;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.DayLimit;
 import ru.randomwalk.matcherservice.model.entity.Location;
-import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.repository.AvailableTimeRepository;
 import ru.randomwalk.matcherservice.repository.DayLimitRepository;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
@@ -56,7 +53,7 @@ class AvailableTimeServiceImplTest extends AbstractContainerTest {
     @Test
     void replaceExistingAvailableTime() {
         var personId = UUID.randomUUID();
-        personService.addNewPerson(new RegisteredUserInfoEvent(personId, "initial"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(personId, "initial"));
         var time = addAvailableTimeForPerson(personId, location, LocalTime.now(), LocalTime.now().plusHours(1), 2);
         AvailableTimeModifyDto modifyDto = new AvailableTimeModifyDto(
                 LocalDate.now().plusDays(1),
@@ -84,7 +81,7 @@ class AvailableTimeServiceImplTest extends AbstractContainerTest {
     @Test
     void deleteAvailableTime() {
         var personId = UUID.randomUUID();
-        personService.addNewPerson(new RegisteredUserInfoEvent(personId, "initial"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(personId, "initial"));
         var time = addAvailableTimeForPerson(personId, location, LocalTime.now(), LocalTime.now().plusHours(1), 2);
 
         availableTimeService.deleteAvailableTime(time);

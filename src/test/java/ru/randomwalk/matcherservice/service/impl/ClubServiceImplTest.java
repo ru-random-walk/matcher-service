@@ -38,7 +38,7 @@ class ClubServiceImplTest extends AbstractContainerTest {
     void addUserToClub() {
         UUID personId = UUID.randomUUID();
         UUID clubId = UUID.randomUUID();
-        personService.addNewPerson(new RegisteredUserInfoEvent(personId, "name"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(personId, "name"));
 
         clubService.addUserToClub(new UserJoinEvent(personId, clubId));
 
@@ -51,7 +51,7 @@ class ClubServiceImplTest extends AbstractContainerTest {
     void removeUserFromClub() {
         UUID personId = UUID.randomUUID();
         UUID clubId = UUID.randomUUID();
-        personService.addNewPerson(new RegisteredUserInfoEvent(personId, "name"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(personId, "name"));
         clubService.addUserToClub(new UserJoinEvent(personId, clubId));
 
         clubService.removeUserFromClub(new UserExcludeEvent(personId, clubId));
@@ -65,7 +65,7 @@ class ClubServiceImplTest extends AbstractContainerTest {
     void removeUserFromClub_doesNotThrowsIfAlreadyRemoved() {
         UUID personId = UUID.randomUUID();
         UUID clubId = UUID.randomUUID();
-        personService.addNewPerson(new RegisteredUserInfoEvent(personId, "name"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(personId, "name"));
 
         assertTrue(clubRepository.findById(new Club.PersonClubId(personId, clubId)).isEmpty());
         assertDoesNotThrow(() -> clubService.removeUserFromClub(new UserExcludeEvent(personId, clubId)));

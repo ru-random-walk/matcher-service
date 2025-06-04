@@ -15,7 +15,6 @@ import ru.randomwalk.matcherservice.AbstractContainerTest;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.DayLimit;
 import ru.randomwalk.matcherservice.model.entity.Location;
-import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.repository.AvailableTimeRepository;
 import ru.randomwalk.matcherservice.repository.DayLimitRepository;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
@@ -61,7 +60,7 @@ class AvailableTimeExpireJobTest extends AbstractContainerTest {
     public void allPreviousTimesAreDeleted() throws JobExecutionException {
         for (int i = 1; i <= JOBS_TO_DELETE_COUNT; ++i) {
             UUID personId = UUID.randomUUID();
-            personService.addNewPerson(new RegisteredUserInfoEvent(personId, personId.toString()));
+            personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(personId, personId.toString()));
             addAvailableTimeForPerson(
                     personId,
                     GeometryUtil.createPoint(1,2),
@@ -74,7 +73,7 @@ class AvailableTimeExpireJobTest extends AbstractContainerTest {
 
         for (int i = 0; i < NOT_DELETED_JOBS_COUNT; ++i) {
             UUID personId = UUID.randomUUID();
-            personService.addNewPerson(new RegisteredUserInfoEvent(personId, personId.toString()));
+            personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(personId, personId.toString()));
             addAvailableTimeForPerson(
                     personId,
                     GeometryUtil.createPoint(1,2),

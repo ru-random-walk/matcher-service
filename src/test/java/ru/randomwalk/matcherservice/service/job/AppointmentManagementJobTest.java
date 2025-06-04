@@ -1,11 +1,9 @@
 package ru.randomwalk.matcherservice.service.job;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.locationtech.jts.geom.Point;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -22,14 +20,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import ru.random.walk.dto.RegisteredUserInfoEvent;
 import ru.randomwalk.matcherservice.AbstractContainerTest;
-import ru.randomwalk.matcherservice.model.enam.AppointmentStatus;
-import ru.randomwalk.matcherservice.model.entity.AppointmentDetails;
 import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.DayLimit;
 import ru.randomwalk.matcherservice.model.entity.Location;
-import ru.randomwalk.matcherservice.model.entity.Person;
 import ru.randomwalk.matcherservice.repository.DayLimitRepository;
-import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
 import ru.randomwalk.matcherservice.service.AvailableTimeService;
 import ru.randomwalk.matcherservice.service.PersonService;
 import ru.randomwalk.matcherservice.service.util.GeometryUtil;
@@ -46,7 +40,6 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 import static ru.randomwalk.matcherservice.model.enam.AppointmentStatus.APPOINTED;
-import static ru.randomwalk.matcherservice.model.enam.AppointmentStatus.IN_PROGRESS;
 
 @SpringBootTest
 @ActiveProfiles("local")
@@ -116,8 +109,8 @@ class AppointmentManagementJobTest extends AbstractContainerTest {
         var partnerId = UUID.randomUUID();
         List<UUID> personClubs = List.of(UUID.randomUUID(), UUID.randomUUID());
         List<UUID> partnersClubs = List.of(UUID.randomUUID(), personClubs.getFirst(), UUID.randomUUID());
-        personService.addNewPerson(new RegisteredUserInfoEvent(personId, "initial"));
-        personService.addNewPerson(new RegisteredUserInfoEvent(partnerId, "partner"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(personId, "initial"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(partnerId, "partner"));
         AvailableTime initialTime = addAvailableTimeForPerson(personId, location1, personFrom, personUntil, null, personClubs);
         addAvailableTimeForPerson(partnerId, location2, partnerFrom, partnerUntil, null, partnersClubs);
         var context = Mockito.mock(JobExecutionContext.class);
@@ -150,8 +143,8 @@ class AppointmentManagementJobTest extends AbstractContainerTest {
         //given
         var personId = UUID.randomUUID();
         var partnerId = UUID.randomUUID();
-        personService.addNewPerson(new RegisteredUserInfoEvent(personId, "initial"));
-        personService.addNewPerson(new RegisteredUserInfoEvent(partnerId, "partner"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(personId, "initial"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(partnerId, "partner"));
         AvailableTime initialTime = addAvailableTimeForPerson(personId, location1, personFrom, personUntil, 100, List.of());
         addAvailableTimeForPerson(partnerId, location2, partnerFrom, partnerUntil, 100, List.of());
         var context = Mockito.mock(JobExecutionContext.class);
@@ -182,8 +175,8 @@ class AppointmentManagementJobTest extends AbstractContainerTest {
         //given
         var personId = UUID.randomUUID();
         var partnerId = UUID.randomUUID();
-        personService.addNewPerson(new RegisteredUserInfoEvent(personId, "initial"));
-        personService.addNewPerson(new RegisteredUserInfoEvent(partnerId, "partner"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(personId, "initial"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(partnerId, "partner"));
         AvailableTime initialTime = addAvailableTimeForPerson(personId, location1, personFrom, personUntil, null, personClubs);
         addAvailableTimeForPerson(partnerId, location2, partnerFrom, partnerUntil, null, partnerClubs);
         var context = Mockito.mock(JobExecutionContext.class);
@@ -213,8 +206,8 @@ class AppointmentManagementJobTest extends AbstractContainerTest {
         //given
         var personId = UUID.randomUUID();
         var partnerId = UUID.randomUUID();
-        personService.addNewPerson(new RegisteredUserInfoEvent(personId, "initial"));
-        personService.addNewPerson(new RegisteredUserInfoEvent(partnerId, "partner"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(personId, "initial"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(partnerId, "partner"));
         AvailableTime initialTime = addAvailableTimeForPerson(personId, location1, personFrom, personUntil, null, List.of());
         addAvailableTimeForPerson(partnerId, location2, partnerFrom, partnerUntil, null, List.of());
         var context = Mockito.mock(JobExecutionContext.class);

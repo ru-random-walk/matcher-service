@@ -21,7 +21,7 @@ public class TestController {
 
     @PostMapping("/test/add-person")
     public void addPerson(@RequestBody RegisteredUserInfoEvent userInfoEvent) {
-        personService.addNewPerson(userInfoEvent);
+        personService.addNewOrUpdateExistingPerson(userInfoEvent);
     }
 
 }

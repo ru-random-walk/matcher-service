@@ -71,12 +71,9 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
-    public void addNewPerson(RegisteredUserInfoEvent userInfoEvent) {
-        if (personRepository.existsById(userInfoEvent.id())) {
-            throw new MatcherBadRequestException("Person with id %s already exists", userInfoEvent.id());
-        }
-
-        Person person = personMapper.createPersonEntity(userInfoEvent);
+    public void addNewOrUpdateExistingPerson(RegisteredUserInfoEvent userInfoEvent) {
+        log.info("Refreshing information about person: {}", userInfoEvent);
+        var person = personMapper.createPersonEntity(userInfoEvent);
         save(person);
     }
 

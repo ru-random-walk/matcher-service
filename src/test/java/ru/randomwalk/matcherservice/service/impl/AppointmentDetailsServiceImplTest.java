@@ -18,7 +18,6 @@ import ru.randomwalk.matcherservice.model.entity.AvailableTime;
 import ru.randomwalk.matcherservice.model.entity.DayLimit;
 import ru.randomwalk.matcherservice.model.entity.Location;
 import ru.randomwalk.matcherservice.model.entity.Person;
-import ru.randomwalk.matcherservice.repository.AvailableTimeRepository;
 import ru.randomwalk.matcherservice.repository.DayLimitRepository;
 import ru.randomwalk.matcherservice.repository.OutboxRepository;
 import ru.randomwalk.matcherservice.service.AppointmentDetailsService;
@@ -30,10 +29,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.util.Date;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -64,8 +60,8 @@ class AppointmentDetailsServiceImplTest extends AbstractContainerTest {
     void approveRequestedAppointment() {
         UUID firstPersonId = UUID.randomUUID();
         UUID secondPersonId = UUID.randomUUID();
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(firstPersonId).build());
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(firstPersonId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
         var requestedAppointment = appointmentDetailsService.requestForAppointment(firstPersonId, secondPersonId, OffsetDateTime.of(LocalDate.now(), LocalTime.of(12, 0), ZoneOffset.UTC), location);
         addAvailableTimeForPerson(
                 firstPersonId,
@@ -101,8 +97,8 @@ class AppointmentDetailsServiceImplTest extends AbstractContainerTest {
     void rejectRequestedAppointment() {
         UUID firstPersonId = UUID.randomUUID();
         UUID secondPersonId = UUID.randomUUID();
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(firstPersonId).build());
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(firstPersonId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
         var requestedAppointment = appointmentDetailsService.requestForAppointment(firstPersonId, secondPersonId, OffsetDateTime.of(LocalDate.now(), LocalTime.of(12, 0), ZoneOffset.UTC), location);
 
         appointmentDetailsService.rejectRequestedAppointment(requestedAppointment);
