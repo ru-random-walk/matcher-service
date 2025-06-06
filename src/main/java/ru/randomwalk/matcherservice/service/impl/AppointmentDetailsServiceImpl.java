@@ -40,6 +40,8 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -214,8 +216,8 @@ public class AppointmentDetailsServiceImpl implements AppointmentDetailsService 
     private void notifyRequesterAboutAppointmentApprove(AppointmentDetails appointmentDetails) {
         var notification = new SendNotificationEvent(
                 appointmentDetails.getRequesterId(),
-                "Your walk request was approved!",
-                String.format("Your walk starts at %s", appointmentDetails.getStartsAt()),
+                "Пользователь принял твою прогулку!",
+                String.format("Прогулка начинается в %s", appointmentDetails.getStartsAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))),
                 Map.of(NotificationConstants.APPOINTMENT_ARG_NAME, appointmentDetails.getId().toString())
         );
         outboxSenderService.sendMessage(EventTopic.SEND_NOTIFICATION, notification);

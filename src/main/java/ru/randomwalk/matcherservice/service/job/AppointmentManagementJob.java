@@ -24,6 +24,7 @@ import ru.randomwalk.matcherservice.service.OutboxSenderService;
 import ru.randomwalk.matcherservice.service.util.NotificationConstants;
 import ru.randomwalk.matcherservice.service.util.TimeUtil;
 
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -167,16 +168,19 @@ public class AppointmentManagementJob implements Job {
     private SendNotificationEvent getGroupedNotification(UUID personId, List<AppointmentCreationResultDto> appointments) {
         return new SendNotificationEvent(
                 personId,
-                String.format("%d new walks have been appointed for you!", appointments.size()),
-                "Hurry up to get acquainted with your schedule!"
+                String.format("%d новых прогулок было назначено!", appointments.size()),
+                "Поспеши ознакомиться со своим расписанием!"
         );
     }
 
     private SendNotificationEvent getSingleNotification(UUID personId, AppointmentDetails appointmentDetails) {
         return new SendNotificationEvent(
                 personId,
-                "New walk has been appointed!",
-                String.format("New walk was appointed at %s! See details...", appointmentDetails.getStartsAt().toString()),
+                "Новая прогулка была назначена!",
+                String.format(
+                        "Новая прогулка состоится в %s! Перейди по уведомлению, чтобы узнать детали!",
+                        appointmentDetails.getStartsAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                ),
                 Map.of(NotificationConstants.APPOINTMENT_ARG_NAME, appointmentDetails.getId().toString())
         );
     }
