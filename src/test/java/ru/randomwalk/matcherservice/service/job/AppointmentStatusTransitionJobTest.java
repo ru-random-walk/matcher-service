@@ -71,8 +71,8 @@ class AppointmentStatusTransitionJobTest extends AbstractContainerTest {
     void checkJobIsScheduledAfterAppointmentWasCreated() throws SchedulerException {
         UUID firstPersonId = UUID.randomUUID();
         UUID secondPersonId = UUID.randomUUID();
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(firstPersonId).build());
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(firstPersonId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
 
         var newAppointment = appointmentDetailsService.createAppointment(firstPersonId, secondPersonId, OffsetDateTime.now().minusDays(1), GeometryUtil.createPoint(1.0, 2.0));
         var inProgressJobKey = JobKey.jobKey(String.format("AppointmentStatusTransitionJob-%s-%s", newAppointment.getId(), IN_PROGRESS));
@@ -94,8 +94,8 @@ class AppointmentStatusTransitionJobTest extends AbstractContainerTest {
         //given
         UUID requesterId = UUID.randomUUID();
         UUID secondPersonId = UUID.randomUUID();
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(requesterId).build());
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(requesterId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
 
         //when
         var newAppointment = appointmentDetailsService.requestForAppointment(requesterId, secondPersonId, OffsetDateTime.now().minusDays(1), GeometryUtil.createPoint(1.0, 2.0));
@@ -119,9 +119,9 @@ class AppointmentStatusTransitionJobTest extends AbstractContainerTest {
         UUID secondPersonId = UUID.randomUUID();
         UUID personId = UUID.randomUUID();
         var time = OffsetDateTime.of(LocalDate.now(), LocalTime.of(12, 0), ZoneOffset.UTC);
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(requesterId).build());
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(personId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(requesterId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(personId).build());
         var requestedAppointment = appointmentDetailsService.requestForAppointment(requesterId, secondPersonId, time, GeometryUtil.createPoint(1.0, 2.0));
 
         //when
@@ -139,8 +139,8 @@ class AppointmentStatusTransitionJobTest extends AbstractContainerTest {
     void execute_TransferStatusToInProgress() throws SchedulerException {
         UUID firstPersonId = UUID.randomUUID();
         UUID secondPersonId = UUID.randomUUID();
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(firstPersonId).build());
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(firstPersonId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
         var newAppointment = appointmentDetailsService.createAppointment(firstPersonId, secondPersonId, OffsetDateTime.now().minusDays(1), GeometryUtil.createPoint(1.0, 2.0));
         var context = Mockito.mock(JobExecutionContext.class);
 
@@ -157,8 +157,8 @@ class AppointmentStatusTransitionJobTest extends AbstractContainerTest {
     void execute_TransferStatusToDoneAndEndAppointment() throws SchedulerException {
         UUID firstPersonId = UUID.randomUUID();
         UUID secondPersonId = UUID.randomUUID();
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(firstPersonId).build());
-        personService.addNewPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(firstPersonId).build());
+        personService.addNewOrUpdateExistingPerson(RegisteredUserInfoEvent.builder().id(secondPersonId).build());
         var newAppointment = appointmentDetailsService.createAppointment(firstPersonId, secondPersonId, OffsetDateTime.now().minusDays(1), GeometryUtil.createPoint(1.0, 2.0));
         var context = Mockito.mock(JobExecutionContext.class);
 

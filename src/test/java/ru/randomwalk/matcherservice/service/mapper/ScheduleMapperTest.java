@@ -48,8 +48,8 @@ class ScheduleMapperTest extends AbstractContainerTest {
     void checkScheduleElementsCount() {
         UUID personId = UUID.randomUUID();
         UUID secondPersonId = UUID.randomUUID();
-        personService.addNewPerson(new RegisteredUserInfoEvent(personId, "initial"));
-        personService.addNewPerson(new RegisteredUserInfoEvent(secondPersonId, "initial"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(personId, "initial"));
+        personService.addNewOrUpdateExistingPerson(new RegisteredUserInfoEvent(secondPersonId, "initial"));
         addAvailableTimeForPerson(personId, GeometryUtil.createPoint(1,2), LocalTime.now().minusHours(1), LocalTime.now().plusHours(2), LocalDate.now().plusDays(1));
         addAvailableTimeForPerson(personId, GeometryUtil.createPoint(1,2), LocalTime.now().minusHours(1), LocalTime.now().plusHours(2), LocalDate.now().minusDays(1));
         addAvailableTimeForPerson(personId, GeometryUtil.createPoint(1,2), LocalTime.now().minusHours(1), LocalTime.now().plusHours(2), LocalDate.now());

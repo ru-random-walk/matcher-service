@@ -23,7 +23,7 @@ public class UserRegistrationListener {
             log.info("Processing message {} from topic {}", message, EventTopic.USER_REGISTRATION);
 
             RegisteredUserInfoEvent userInfoEvent = objectMapper.readValue(message, RegisteredUserInfoEvent.class);
-            personService.addNewPerson(userInfoEvent);
+            personService.addNewOrUpdateExistingPerson(userInfoEvent);
 
             log.info("Message {} is processed", message);
         } catch (Exception e) {

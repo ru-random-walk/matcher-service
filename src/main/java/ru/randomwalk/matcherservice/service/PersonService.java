@@ -26,7 +26,7 @@ public interface PersonService {
 
     List<Club> getClubsForPerson(UUID personId);
 
-    void addNewPerson(RegisteredUserInfoEvent addPersonDto);
+    void addNewOrUpdateExistingPerson(RegisteredUserInfoEvent addPersonDto);
 
     int getClubsSimilarityBetweenPeople(Person first, Person second);
 
